@@ -27,5 +27,3 @@ The production build is generated in the `dist/` folder and is used by the GitHu
 ## Deployment to GitHub Pages
 
 The workflow located at `.github/workflows/deploy.yml` builds the application and automatically publishes it to GitHub Pages whenever changes are pushed to the `main` branch. Manual triggering via "Run workflow" is also possible.
-
-Make sure that GitHub Pages in the repository settings is configured to use the source "GitHub Actions".
