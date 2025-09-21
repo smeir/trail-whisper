@@ -4,7 +4,7 @@ Trail Whisper is a production-ready React + TypeScript application for exploring
 
 ## Features
 
-- **Google OAuth** via Supabase Auth with persistent sessions.
+- **Email/password authentication** via Supabase Auth with persistent sessions.
 - **Per-user activity storage** backed by PostGIS geography columns and row-level security.
 - **Geolocation dashboard** that asks for permission, checks for previous visits within 400 m, and renders a mini map of nearby workouts (< 2 km).
 - **FIT file ingestion** with client-side previews and WKT payloads ready for PostGIS.
@@ -16,7 +16,7 @@ Trail Whisper is a production-ready React + TypeScript application for exploring
 
 1. **Supabase project**
    - Create a project at [supabase.com](https://supabase.com/) and note the project URL and anon key.
-   - Enable Google provider under **Authentication → Providers**. Add the callback `https://<your-domain>/` for production and `http://localhost:5173/` for local dev.
+   - Confirm that email sign-ups are enabled under **Authentication → Providers** (enabled by default) and disable OAuth providers you do not plan to offer.
    - Under **Database → Extensions** enable `postgis`.
    - Run the SQL script [`supabase/setup.sql`](./supabase/setup.sql) using the SQL editor or the Supabase CLI to create the `activities` table, policies, and RPC functions.
 
@@ -37,7 +37,7 @@ pnpm install
 pnpm dev
 ```
 
-The Vite dev server starts at http://localhost:5173. Sign in with Google to exercise the authenticated routes.
+The Vite dev server starts at http://localhost:5173. Sign in with your email address and password to exercise the authenticated routes.
 
 ## Production build
 
@@ -60,7 +60,7 @@ Run it once per project. If you make schema updates, re-run the script or create
 
 ## Architecture notes
 
-- **Routing**: `react-router-dom` with protected routes that gate everything behind Google auth.
+- **Routing**: `react-router-dom` with protected routes that gate everything behind Supabase email authentication.
 - **Data fetching**: TanStack Query handles cache invalidation after uploads and ensures optimistic UI states.
 - **Maps**: React Leaflet + OpenStreetMap tiles, with markers for current location and activities.
 - **FIT parsing**: `fit-file-parser` converts tracks to WKT (`LINESTRING`) and calculates simple centroids client-side.
@@ -80,7 +80,7 @@ Run it once per project. If you make schema updates, re-run the script or create
 
 Automated tests are not yet configured. Run through the main flows manually:
 
-1. Sign in on `/login` with Google and ensure redirect to `/app`.
+1. Create an account or sign in on `/login` with email + password and ensure redirect to `/app`.
 2. Accept geolocation permissions and confirm the 400 m check works once data exists.
 3. Upload a FIT file on `/upload`, verify the toast, and ensure it appears in `/history` and the dashboard map.
 4. Open `/activity/:id` to validate the map and GeoJSON download.
