@@ -1,29 +1,31 @@
 # Trail Whisper
 
-Dies ist eine minimalistische Hello-World-React-Anwendung, erstellt mit [Vite](https://vite.dev/).
-Die App ist als reine Client-Anwendung umgesetzt und wird über GitHub Pages bereitgestellt.
+[![Build](https://github.com/smeir/trail-whisper/actions/workflows/deploy.yml/badge.svg?branch=main)](https://github.com/smeir/trail-whisper/actions/workflows/deploy.yml)
+[![GitHub Pages](https://img.shields.io/github/deployments/smeir/trail-whisper/github-pages?label=pages&logo=github)](https://github.com/smeir/trail-whisper/deployments/github-pages)
+[![React](https://img.shields.io/npm/v/react?label=react)](https://www.npmjs.com/package/react)
+[![Vite](https://img.shields.io/npm/v/vite?label=vite)](https://www.npmjs.com/package/vite)
 
-## Entwicklung starten
+This is a minimalist Hello World React application created with [Vite](https://vite.dev/). The app is implemented as a pure client-side application and is served via GitHub Pages.
+
+## Start Development
 
 ```bash
 npm install
 npm run dev
 ```
 
-Danach ist die Anwendung unter http://localhost:5173 verfügbar.
+After that, the application is available at http://localhost:5173.
 
-## Produktion bauen
+## Build for Production
 
 ```bash
 npm run build
 ```
 
-Der produzierte Build landet im Ordner `dist/` und wird von der GitHub-Pages-Integration verwendet.
+The production build is generated in the `dist/` folder and is used by the GitHub Pages deployment.
 
-## Deployment auf GitHub Pages
+## Deployment to GitHub Pages
 
-Der Workflow unter `.github/workflows/deploy.yml` baut die Anwendung und veröffentlicht sie automatisch
-auf GitHub Pages, sobald Änderungen auf den `main`-Branch gepusht werden. Manuelles Auslösen über
-"Run workflow" ist ebenfalls möglich.
+The workflow located at `.github/workflows/deploy.yml` builds the application and automatically publishes it to GitHub Pages whenever changes are pushed to the `main` branch. Manual triggering via "Run workflow" is also possible.
 
-Stelle sicher, dass GitHub Pages in den Repository-Einstellungen auf die Quelle "GitHub Actions" gesetzt ist.
+Make sure that GitHub Pages in the repository settings is configured to use the source "GitHub Actions".

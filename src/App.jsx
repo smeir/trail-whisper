@@ -4,7 +4,7 @@ function App() {
   return (
     <div className="app">
       <h1>Hello World</h1>
-      <p>Willkommen bei deiner React-App, gebaut mit Vite und bereit für GitHub Pages.</p>
+      <p>Welcome to your React app, built with Vite and ready for GitHub Pages deployment.</p>
     </div>
   )
 }
