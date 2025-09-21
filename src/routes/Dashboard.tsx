@@ -14,7 +14,16 @@ import type { Activity } from '@/lib/types'
 import { Skeleton } from '@/components/ui/skeleton'
 
 export default function Dashboard() {
-  const { position, status, loading: geoLoading, error, requestLocation } = useGeolocation()
+  const {
+    position,
+    status,
+    loading: geoLoading,
+    error,
+    requestLocation,
+    setManualPosition,
+    clearManualPosition,
+    mode,
+  } = useGeolocation()
   const { visits, stats, isLoading: visitsLoading } = useVisitsNear(position)
   const { data: activities, isLoading: activitiesLoading } = useActivities({ limit: 40 })
 
@@ -54,6 +63,9 @@ export default function Dashboard() {
           visits={visits}
           error={error}
           onRetry={requestLocation}
+          onSetManual={setManualPosition}
+          onClearManual={clearManualPosition}
+          mode={mode}
         />
         <Card>
           <CardHeader className="flex flex-col gap-2">

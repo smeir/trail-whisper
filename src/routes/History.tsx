@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { FilterIcon, MapPinIcon } from 'lucide-react'
 
 import { ActivityCard } from '@/components/ActivityCard'
+import { ManualLocationControls } from '@/components/location'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -27,7 +28,15 @@ export default function History() {
   const [to, setTo] = useState('')
   const [useNearby, setUseNearby] = useState(false)
 
-  const { position, status, loading: geoLoading, requestLocation } = useGeolocation({ autoRequest: false })
+  const {
+    position,
+    status,
+    loading: geoLoading,
+    requestLocation,
+    setManualPosition,
+    clearManualPosition,
+    mode,
+  } = useGeolocation({ autoRequest: false })
 
   const filters = useMemo(() => {
     const filter: Parameters<typeof useActivities>[0] = {}
@@ -91,11 +100,28 @@ export default function History() {
             {useNearby ? (
               <p className="text-xs text-slate-500">
                 {position
-                  ? `Within 2 km of your current location (${position.lat.toFixed(3)}, ${position.lon.toFixed(3)})`
+                  ? position.source === 'manual'
+                    ? `Within 2 km of your manual location (${position.lat.toFixed(3)}, ${position.lon.toFixed(3)})`
+                    : `Within 2 km of your current location (${position.lat.toFixed(3)}, ${position.lon.toFixed(3)})`
                   : status === 'denied'
-                  ? 'Location access denied. Update your browser permissions.'
+                  ? 'Location access denied. Update your browser permissions or enter coordinates manually.'
+                  : status === 'unsupported'
+                  ? 'Geolocation unsupported. Enter coordinates manually to filter by proximity.'
                   : 'Waiting for location…'}
               </p>
+            ) : null}
+            {useNearby || mode === 'manual' ? (
+              <ManualLocationControls
+                position={position}
+                mode={mode}
+                onSetManual={setManualPosition}
+                onClearManual={clearManualPosition}
+                onRequestLocation={() => {
+                  if (useNearby) requestLocation()
+                }}
+                className="bg-slate-50"
+                description="Enter coordinates to filter activities near a custom point."
+              />
             ) : null}
           </div>
         </div>
