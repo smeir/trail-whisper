@@ -1,5 +1,10 @@
 # Trail Whisper
 
+[![Build](https://github.com/smeir/trail-whisper/actions/workflows/deploy.yml/badge.svg?branch=main)](https://github.com/smeir/trail-whisper/actions/workflows/deploy.yml)
+[![GitHub Pages](https://img.shields.io/github/deployments/smeir/trail-whisper/github-pages?label=pages&logo=github)](https://github.com/smeir/trail-whisper/deployments/github-pages)
+[![React](https://img.shields.io/npm/v/react?label=react)](https://www.npmjs.com/package/react)
+[![Vite](https://img.shields.io/npm/v/vite?label=vite)](https://www.npmjs.com/package/vite)
+
 Trail Whisper is a production-ready React + TypeScript application for exploring your outdoor workouts. It connects to Supabase for authentication, storage and geospatial queries, parses FIT files on the client, and surfaces whether you have already visited your current location.
 
 ## Features
@@ -28,13 +33,13 @@ Trail Whisper is a production-ready React + TypeScript application for exploring
      VITE_SUPABASE_ANON_KEY="<anon-key>"
      ```
 
-3. **Node.js 18+** with your preferred package manager (`pnpm` recommended, `npm` works as well).
+3. **Node.js 18+** with your preferred package manager (npm is used in the examples below).
 
 ## Local development
 
 ```bash
-pnpm install
-pnpm dev
+npm install
+npm run dev
 ```
 
 The Vite dev server starts at http://localhost:5173. Sign in with your email address and password to exercise the authenticated routes.
@@ -42,10 +47,10 @@ The Vite dev server starts at http://localhost:5173. Sign in with your email add
 ## Production build
 
 ```bash
-pnpm build
+npm run build
 ```
 
-The optimised build is written to `dist/`. Run `pnpm preview` to smoke-test the production bundle.
+The optimised build is written to `dist/`. Run `npm run preview` to smoke-test the production bundle.
 
 ## Supabase data model
 
@@ -69,12 +74,11 @@ Run it once per project. If you make schema updates, re-run the script or create
 
 ## Scripts
 
-| Command        | Description                          |
-| -------------- | ------------------------------------ |
-| `pnpm dev`     | Start Vite with hot module reload     |
-| `pnpm build`   | Production build                      |
-| `pnpm preview` | Preview the production bundle         |
-| `pnpm lint`    | Run ESLint over the TypeScript source |
+| Command          | Description                           |
+| ---------------- | ------------------------------------- |
+| `npm run dev`    | Start Vite with hot module reload     |
+| `npm run build`  | Production build                      |
+| `npm run preview`| Preview the production bundle         |
 
 ## Testing & QA
 

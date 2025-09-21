@@ -1,5 +1,16 @@
--- Enable PostGIS support for geography columns
+-- Enable PostGIS support for geography columns (Supabase usually installs extensions into the `extensions` schema)
 create extension if not exists postgis;
+
+-- Ensure PostGIS (geography) is available – raises a clear error if not
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_type t JOIN pg_namespace n ON n.oid = t.typnamespace
+    WHERE t.typname = 'geography'
+  ) THEN
+    RAISE EXCEPTION 'PostGIS geography type not found. Ensure `create extension postgis;` ran in this database.';
+  END IF;
+END$$;
 
 -- Activities table scoped per authenticated user
 create table if not exists public.activities (
@@ -19,16 +30,41 @@ create index if not exists activities_user_started_idx on public.activities (use
 
 alter table public.activities enable row level security;
 
-create policy if not exists "activities_select_own"
+-- Re-create RLS policies idempotently (Postgres does not support IF NOT EXISTS for CREATE POLICY)
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'activities' AND policyname = 'activities_select_own'
+  ) THEN
+    EXECUTE 'DROP POLICY "activities_select_own" ON public.activities';
+  END IF;
+  IF EXISTS (
+    SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'activities' AND policyname = 'activities_insert_own'
+  ) THEN
+    EXECUTE 'DROP POLICY "activities_insert_own" ON public.activities';
+  END IF;
+  IF EXISTS (
+    SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'activities' AND policyname = 'activities_update_own'
+  ) THEN
+    EXECUTE 'DROP POLICY "activities_update_own" ON public.activities';
+  END IF;
+  IF EXISTS (
+    SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'activities' AND policyname = 'activities_delete_own'
+  ) THEN
+    EXECUTE 'DROP POLICY "activities_delete_own" ON public.activities';
+  END IF;
+END$$;
+
+create policy "activities_select_own"
   on public.activities for select using (auth.uid() = user_id);
 
-create policy if not exists "activities_insert_own"
+create policy "activities_insert_own"
   on public.activities for insert with check (auth.uid() = user_id);
 
-create policy if not exists "activities_update_own"
+create policy "activities_update_own"
   on public.activities for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
-create policy if not exists "activities_delete_own"
+create policy "activities_delete_own"
   on public.activities for delete using (auth.uid() = user_id);
 
 -- RPC to detect visits within a configurable radius (default 400m)
@@ -47,6 +83,7 @@ returns table(
 )
 language sql
 security definer
+set search_path = public, extensions
 as $$
   select
     a.id,
@@ -79,6 +116,7 @@ returns table(
 )
 language sql
 security definer
+set search_path = public, extensions
 as $$
   select
     a.id,
