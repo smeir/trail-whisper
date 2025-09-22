@@ -8,6 +8,9 @@
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "strict": true,
+    "paths": {
+      "@/*": ["src/*"]
+    },
     "forceConsistentCasingInFileNames": true,
     "module": "ESNext",
     "moduleResolution": "Node",
@@ -20,3 +23,4 @@
   "include": ["src"],
   "references": []
 }
+
