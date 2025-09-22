@@ -22,11 +22,13 @@ L.Icon.Default.mergeOptions({
 
 const queryClient = new QueryClient()
 
+const basename = import.meta.env.BASE_URL.replace(/\/$/, '') || '/'
+
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <BrowserRouter>
+        <BrowserRouter basename={basename}>
           <App />
         </BrowserRouter>
       </AuthProvider>
