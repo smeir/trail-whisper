@@ -4,7 +4,7 @@ import { CalendarIcon, MapPinIcon } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import type { Activity } from '@/lib/types'
 import { formatDateTime, formatDistanceMeters } from '@/utils/format'
-import { geoLineToLatLngs, geoPointToLatLng } from '@/utils/geo'
+import { geoLineToLatLngs } from '@/utils/geo'
 import { MapView } from '@/components/MapView'
 
 interface ActivityCardProps {
@@ -13,7 +13,11 @@ interface ActivityCardProps {
 
 export function ActivityCard({ activity }: ActivityCardProps) {
   const trackPoints = geoLineToLatLngs(activity.track_geom)
-  const center = geoPointToLatLng(activity.center_point)
+  const focusPoint = trackPoints[Math.floor(trackPoints.length / 2)] ?? trackPoints[0]
+  const startPoint = trackPoints[0]
+  const markers = startPoint
+    ? [{ id: `${activity.id}-start`, point: startPoint, label: 'Start' as const }]
+    : []
 
   return (
     <Card className="overflow-hidden">
@@ -21,8 +25,8 @@ export function ActivityCard({ activity }: ActivityCardProps) {
         <MapView
           className="h-48"
           track={trackPoints}
-          center={center}
-          activities={center ? [{ id: activity.id, center }] : []}
+          center={focusPoint}
+          activities={markers}
         />
         <div className="flex flex-col gap-3 px-6 pb-6">
           <div className="flex items-center justify-between">
@@ -37,10 +41,10 @@ export function ActivityCard({ activity }: ActivityCardProps) {
             <CalendarIcon className="h-4 w-4 text-slate-400" />
             {formatDateTime(activity.started_at)}
           </div>
-          {center ? (
+          {startPoint ? (
             <div className="flex items-center gap-3 text-sm text-slate-600">
               <MapPinIcon className="h-4 w-4 text-slate-400" />
-              {center.lat.toFixed(4)}, {center.lon.toFixed(4)}
+              Start: {startPoint.lat.toFixed(4)}, {startPoint.lon.toFixed(4)}
             </div>
           ) : null}
           <Link

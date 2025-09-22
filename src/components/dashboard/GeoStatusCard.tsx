@@ -39,7 +39,7 @@ export function GeoStatusCard({
           <NavigationIcon className="h-5 w-5 text-brand-500" /> Been here before?
         </CardTitle>
         <CardDescription>
-          We look for any of your activities that finished within 400 meters of your current spot.
+          We look for any of your activities that passed within 400 meters of your current spot.
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-5">

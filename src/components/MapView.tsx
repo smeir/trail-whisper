@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils'
 
 interface MapActivity {
   id: string
-  center: { lat: number; lon: number }
+  point: { lat: number; lon: number }
   label?: string
   color?: string
 }
@@ -31,7 +31,7 @@ export function MapView({
   height = 260,
   className,
 }: MapViewProps) {
-  const fallback = center ?? currentLocation ?? activities[0]?.center ?? track[0]
+  const fallback = center ?? currentLocation ?? activities[0]?.point ?? track[0]
 
   if (!fallback) {
     return (
@@ -62,7 +62,7 @@ export function MapView({
         {activities.map((activity) => (
           <CircleMarker
             key={activity.id}
-            center={[activity.center.lat, activity.center.lon]}
+            center={[activity.point.lat, activity.point.lon]}
             radius={8}
             pathOptions={{ color: activity.color ?? '#0f3ca3', fillOpacity: 0.4 }}
           >

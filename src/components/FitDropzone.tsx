@@ -6,7 +6,7 @@ import { useQueryClient } from '@tanstack/react-query'
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { parseFitFile, pointToWkt, pointsToLineString, type ParsedActivity } from '@/lib/fit'
+import { parseFitFile, pointsToLineString, type ParsedActivity } from '@/lib/fit'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/providers/AuthProvider'
 import { formatDateTime, formatDistanceMeters } from '@/utils/format'
@@ -87,7 +87,6 @@ export function FitDropzone() {
           ended_at: parsed.endedAt,
           total_distance_m: parsed.totalDistance,
           track_geom: pointsToLineString(parsed.points),
-          center_point: pointToWkt(parsed.center),
         })
 
         if (error) throw error
@@ -185,9 +184,11 @@ export function FitDropzone() {
                       <p className="text-sm font-semibold text-slate-800">{item.parsed.points.length}</p>
                     </div>
                     <div className="rounded-xl bg-slate-100 p-2">
-                      <p className="text-[11px] uppercase text-slate-500">Center</p>
+                      <p className="text-[11px] uppercase text-slate-500">Start point</p>
                       <p className="text-sm font-semibold text-slate-800">
-                        {item.parsed.center.lat.toFixed(4)}, {item.parsed.center.lon.toFixed(4)}
+                        {item.parsed.points[0]
+                          ? `${item.parsed.points[0].lat.toFixed(4)}, ${item.parsed.points[0].lon.toFixed(4)}`
+                          : '—'}
                       </p>
                     </div>
                   </div>

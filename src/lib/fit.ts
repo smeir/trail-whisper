@@ -9,7 +9,6 @@ export interface ParsedActivity {
   endedAt: string
   totalDistance: number
   points: Array<{ lat: number; lon: number }>
-  center: { lat: number; lon: number }
 }
 
 const sportMap: Record<string, SportType> = {
@@ -36,30 +35,9 @@ function normalizeSport(rawSport?: string): SportType {
   return sportMap[lower] ?? 'other'
 }
 
-function getLineCenter(points: Array<{ lat: number; lon: number }>) {
-  const total = points.reduce(
-    (acc, point) => {
-      acc.lat += point.lat
-      acc.lon += point.lon
-      return acc
-    },
-    { lat: 0, lon: 0 },
-  )
-
-  const count = points.length || 1
-  return {
-    lat: total.lat / count,
-    lon: total.lon / count,
-  }
-}
-
 export function pointsToLineString(points: Array<{ lat: number; lon: number }>) {
   const path = points.map((point) => `${point.lon} ${point.lat}`).join(', ')
   return `SRID=4326;LINESTRING(${path})`
-}
-
-export function pointToWkt(point: { lat: number; lon: number }) {
-  return `SRID=4326;POINT(${point.lon} ${point.lat})`
 }
 
 export async function parseFitFile(file: File): Promise<ParsedActivity> {
@@ -100,7 +78,6 @@ export async function parseFitFile(file: File): Promise<ParsedActivity> {
         endedAt: new Date(endedAt).toISOString(),
         totalDistance,
         points,
-        center: getLineCenter(points),
       })
     })
   })

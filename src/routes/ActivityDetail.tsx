@@ -6,7 +6,7 @@ import { MapView } from '@/components/MapView'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useActivityDetail } from '@/hooks/useActivityDetail'
-import { geoLineToLatLngs, geoPointToLatLng } from '@/utils/geo'
+import { geoLineToLatLngs } from '@/utils/geo'
 import { formatDateTime, formatDistanceMeters } from '@/utils/format'
 import { Skeleton } from '@/components/ui/skeleton'
 
@@ -15,7 +15,23 @@ export default function ActivityDetail() {
   const { data: activity, isLoading } = useActivityDetail(id)
 
   const trackPoints = useMemo(() => geoLineToLatLngs(activity?.track_geom), [activity?.track_geom])
-  const center = useMemo(() => geoPointToLatLng(activity?.center_point), [activity?.center_point])
+  const focusPoint = useMemo(
+    () => trackPoints[Math.floor(trackPoints.length / 2)] ?? trackPoints[0],
+    [trackPoints],
+  )
+  const startPoint = trackPoints[0]
+  const endPoint = trackPoints[trackPoints.length - 1]
+  const highlightPoints = useMemo(() => {
+    if (!activity) return []
+    const markers: Array<{ id: string; point: { lat: number; lon: number }; label?: string; color?: string }> = []
+    if (startPoint) {
+      markers.push({ id: `${activity.id}-start`, point: startPoint, label: 'Start', color: '#16a34a' })
+    }
+    if (endPoint) {
+      markers.push({ id: `${activity.id}-end`, point: endPoint, label: 'Finish', color: '#dc2626' })
+    }
+    return markers
+  }, [activity, startPoint, endPoint])
 
   const handleDownload = () => {
     if (!activity) return
@@ -67,7 +83,7 @@ export default function ActivityDetail() {
         <h1 className="text-2xl font-semibold text-slate-900 capitalize">{activity.sport}</h1>
         <p className="text-sm text-slate-600">{formatDateTime(activity.started_at)} · {formatDistanceMeters(activity.total_distance_m)}</p>
       </div>
-      <MapView className="h-96" track={trackPoints} center={center} activities={center ? [{ id: activity.id, center }] : []} zoom={13} />
+      <MapView className="h-96" track={trackPoints} center={focusPoint} activities={highlightPoints} zoom={13} />
       <Card>
         <CardHeader className="flex flex-col gap-2">
           <CardTitle className="flex items-center gap-2 text-xl">
@@ -88,11 +104,19 @@ export default function ActivityDetail() {
             <p className="text-xs uppercase text-slate-500">Distance</p>
             <p className="text-sm font-semibold text-slate-800">{formatDistanceMeters(activity.total_distance_m)}</p>
           </div>
-          {center ? (
+          {startPoint ? (
             <div className="rounded-2xl bg-white p-4 shadow-sm">
-              <p className="text-xs uppercase text-slate-500">Center point</p>
+              <p className="text-xs uppercase text-slate-500">Start coords</p>
               <p className="text-sm font-semibold text-slate-800">
-                {center.lat.toFixed(4)}, {center.lon.toFixed(4)}
+                {startPoint.lat.toFixed(4)}, {startPoint.lon.toFixed(4)}
+              </p>
+            </div>
+          ) : null}
+          {endPoint ? (
+            <div className="rounded-2xl bg-white p-4 shadow-sm">
+              <p className="text-xs uppercase text-slate-500">Finish coords</p>
+              <p className="text-sm font-semibold text-slate-800">
+                {endPoint.lat.toFixed(4)}, {endPoint.lon.toFixed(4)}
               </p>
             </div>
           ) : null}

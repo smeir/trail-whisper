@@ -1,28 +1,4 @@
-import type { GeoLineString, GeoPoint } from '@/lib/types'
-
-function parsePointString(input: string) {
-  const trimmed = input.trim()
-  if (!trimmed) return undefined
-  if (trimmed.startsWith('{')) {
-    try {
-      const json = JSON.parse(trimmed) as GeoPoint
-      if (json?.coordinates) {
-        const [lon, lat] = json.coordinates
-        return { lat, lon }
-      }
-    } catch (error) {
-      return undefined
-    }
-  }
-  const match = trimmed.match(/POINT\(([-0-9.\s]+)\)/i)
-  if (match?.[1]) {
-    const [lon, lat] = match[1].trim().split(/\s+/).map(Number)
-    if (Number.isFinite(lat) && Number.isFinite(lon)) {
-      return { lat, lon }
-    }
-  }
-  return undefined
-}
+import type { GeoLineString } from '@/lib/types'
 
 function parseLineString(input: string) {
   const trimmed = input.trim()
@@ -48,17 +24,35 @@ function parseLineString(input: string) {
   return []
 }
 
-export function geoPointToLatLng(point?: GeoPoint | string | null) {
-  if (!point) return undefined
-  if (typeof point === 'string') return parsePointString(point)
-  const [lon, lat] = point.coordinates
-  return { lat, lon }
-}
-
 export function geoLineToLatLngs(line?: GeoLineString | string | null) {
   if (!line) return []
   if (typeof line === 'string') return parseLineString(line)
   return line.coordinates.map(([lon, lat]) => ({ lat, lon }))
+}
+
+export function findNearestPointOnTrack(
+  track: Array<{ lat: number; lon: number }>,
+  target: { lat: number; lon: number },
+  maxDistance?: number,
+) {
+  let nearestPoint: { lat: number; lon: number } | undefined
+  let nearestDistance = Infinity
+
+  for (const point of track) {
+    if (!Number.isFinite(point.lat) || !Number.isFinite(point.lon)) continue
+    const distance = haversineDistance(point, target)
+    if (distance < nearestDistance) {
+      nearestDistance = distance
+      nearestPoint = point
+    }
+    if (typeof maxDistance === 'number' && nearestDistance <= maxDistance) {
+      return { point: nearestPoint, distance: nearestDistance }
+    }
+  }
+
+  if (!nearestPoint) return undefined
+
+  return { point: nearestPoint, distance: nearestDistance }
 }
 
 export function haversineDistance(a: { lat: number; lon: number }, b: { lat: number; lon: number }) {

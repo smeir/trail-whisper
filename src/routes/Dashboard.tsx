@@ -8,10 +8,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useGeolocation } from '@/hooks/useGeolocation'
 import { useVisitsNear } from '@/hooks/useVisitsNear'
 import { useActivities } from '@/hooks/useActivities'
-import { geoPointToLatLng, haversineDistance } from '@/utils/geo'
+import { geoLineToLatLngs, findNearestPointOnTrack } from '@/utils/geo'
 import { formatDateTime, formatDistanceMeters } from '@/utils/format'
 import type { Activity } from '@/lib/types'
 import { Skeleton } from '@/components/ui/skeleton'
+
+const NEARBY_RADIUS_METERS = 2000
 
 export default function Dashboard() {
   const {
@@ -27,27 +29,32 @@ export default function Dashboard() {
   const { visits, stats, isLoading: visitsLoading } = useVisitsNear(position)
   const { data: activities, isLoading: activitiesLoading } = useActivities({ limit: 40 })
 
-  const nearbyActivities = useMemo(() => {
+  const nearbyActivities = useMemo<NearbyActivityInfo[]>(() => {
     if (!activities || !position) return []
-    return activities.filter((activity) => {
-      const center = geoPointToLatLng(activity.center_point)
-      if (!center) return false
-      return haversineDistance(center, { lat: position.lat, lon: position.lon }) <= 2000
+
+    return activities.flatMap((activity) => {
+      const track = geoLineToLatLngs(activity.track_geom)
+      if (!track.length) return []
+
+      const nearest = findNearestPointOnTrack(track, { lat: position.lat, lon: position.lon }, NEARBY_RADIUS_METERS)
+      if (!nearest || nearest.distance > NEARBY_RADIUS_METERS) return []
+
+      return [
+        {
+          activity,
+          nearestPoint: nearest.point,
+          distance: nearest.distance,
+        },
+      ]
     })
   }, [activities, position])
 
   const mapMarkers = useMemo(() => {
-    return nearbyActivities
-      .map((activity) => {
-        const center = geoPointToLatLng(activity.center_point)
-        if (!center) return undefined
-        return {
-          id: activity.id,
-          center,
-          label: `${activity.sport} • ${formatDistanceMeters(activity.total_distance_m)}`,
-        }
-      })
-      .filter(Boolean) as Array<{ id: string; center: { lat: number; lon: number }; label: string }>
+    return nearbyActivities.map(({ activity, nearestPoint }) => ({
+      id: activity.id,
+      point: nearestPoint,
+      label: `${activity.sport} • ${formatDistanceMeters(activity.total_distance_m)}`,
+    }))
   }, [nearbyActivities])
 
   const recentActivities = (activities ?? []).slice(0, 5)
@@ -85,7 +92,9 @@ export default function Dashboard() {
               {geoLoading || activitiesLoading ? (
                 <Skeleton className="h-20 w-full" />
               ) : mapMarkers.length ? (
-                nearbyActivities.map((activity) => <NearbyActivityRow key={activity.id} activity={activity} />)
+                nearbyActivities.map((item) => (
+                  <NearbyActivityRow key={item.activity.id} info={item} />
+                ))
               ) : (
                 <p className="rounded-2xl bg-slate-100 p-4 text-center text-sm text-slate-500">
                   No personal activities nearby yet. Upload a FIT workout to see it here.
@@ -137,9 +146,14 @@ export default function Dashboard() {
   )
 }
 
-function NearbyActivityRow({ activity }: { activity: Activity }) {
-  const center = geoPointToLatLng(activity.center_point)
-  if (!center) return null
+interface NearbyActivityInfo {
+  activity: Activity
+  nearestPoint: { lat: number; lon: number }
+  distance: number
+}
+
+function NearbyActivityRow({ info }: { info: NearbyActivityInfo }) {
+  const { activity, distance, nearestPoint } = info
 
   return (
     <Link
@@ -148,7 +162,9 @@ function NearbyActivityRow({ activity }: { activity: Activity }) {
     >
       <span className="capitalize">{activity.sport}</span>
       <span className="text-xs text-slate-500">
-        {formatDistanceMeters(activity.total_distance_m)} · {center.lat.toFixed(3)}, {center.lon.toFixed(3)}
+        {formatDistanceMeters(activity.total_distance_m)} · {formatDistanceMeters(distance)} away ·
+        {' '}
+        {nearestPoint.lat.toFixed(3)}, {nearestPoint.lon.toFixed(3)}
       </span>
     </Link>
   )

@@ -21,11 +21,8 @@ create table if not exists public.activities (
   ended_at timestamptz not null,
   total_distance_m integer not null check (total_distance_m >= 0),
   track_geom geography(LineString, 4326) not null,
-  center_point geography(Point, 4326) not null,
   created_at timestamptz not null default now()
 );
-
-create index if not exists activities_center_point_gix on public.activities using gist (center_point);
 create index if not exists activities_user_started_idx on public.activities (user_id, started_at desc);
 
 alter table public.activities enable row level security;
@@ -91,11 +88,11 @@ as $$
     a.ended_at,
     a.total_distance_m,
     a.sport,
-    ST_Distance(a.center_point, ST_SetSRID(ST_MakePoint(lon, lat), 4326)::geography) as distance_m
+    ST_Distance(a.track_geom, ST_SetSRID(ST_MakePoint(lon, lat), 4326)::geography) as distance_m
   from public.activities a
   where a.user_id = auth.uid()
     and ST_DWithin(
-      a.center_point,
+      a.track_geom,
       ST_SetSRID(ST_MakePoint(lon, lat), 4326)::geography,
       coalesce(radius_m, 400)
     )
@@ -111,7 +108,6 @@ returns table(
   ended_at timestamptz,
   total_distance_m integer,
   track_geojson json,
-  center_geojson json,
   created_at timestamptz
 )
 language sql
@@ -125,7 +121,6 @@ as $$
     a.ended_at,
     a.total_distance_m,
     ST_AsGeoJSON(a.track_geom)::json as track_geojson,
-    ST_AsGeoJSON(a.center_point)::json as center_geojson,
     a.created_at
   from public.activities a
   where a.user_id = auth.uid()

@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import type { Activity } from '@/lib/types'
 import type { SportType } from '@/lib/fit'
-import { geoPointToLatLng, haversineDistance } from '@/utils/geo'
+import { geoLineToLatLngs, findNearestPointOnTrack } from '@/utils/geo'
 
 interface ActivitiesFilter {
   sport?: SportType | 'all'
@@ -19,7 +19,7 @@ export function useActivities(filters?: ActivitiesFilter) {
     queryFn: async () => {
       let query = supabase
         .from('activities')
-        .select('id, sport, started_at, ended_at, total_distance_m, track_geom, center_point, created_at')
+        .select('id, sport, started_at, ended_at, total_distance_m, track_geom, created_at')
         .order('started_at', { ascending: false })
 
       if (filters?.limit) {
@@ -46,10 +46,11 @@ export function useActivities(filters?: ActivitiesFilter) {
       if (filters?.near) {
         const { lat, lon, radius } = filters.near
         list = list.filter((activity) => {
-          const center = geoPointToLatLng(activity.center_point)
-          if (!center) return false
-          const distance = haversineDistance(center, { lat, lon })
-          return distance <= radius
+          const trackPoints = geoLineToLatLngs(activity.track_geom)
+          if (!trackPoints.length) return false
+          const nearest = findNearestPointOnTrack(trackPoints, { lat, lon }, radius)
+          if (!nearest) return false
+          return typeof radius === 'number' ? nearest.distance <= radius : true
         })
       }
 
