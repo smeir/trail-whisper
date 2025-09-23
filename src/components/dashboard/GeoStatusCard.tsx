@@ -1,8 +1,8 @@
+import { Link } from 'react-router-dom'
 import { BadgeCheckIcon, BanIcon, NavigationIcon, RefreshCwIcon } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { StatsBadges } from '@/components/StatsBadges'
 import type { AggregatedVisitStats, Coordinates, VisitNear } from '@/lib/types'
 import { formatDateTime, formatDistanceMeters, formatRelative } from '@/utils/format'
 import { ManualLocationControls } from '@/components/location'
@@ -72,21 +72,6 @@ export function GeoStatusCard({
           </div>
         ) : null}
 
-        {!loading && status !== 'denied' && position ? (
-          <div className="rounded-2xl bg-slate-100 p-4 text-sm text-slate-600">
-            {position.source === 'manual' ? (
-              <>
-                <p className="font-medium text-slate-700">Using manually set coordinates.</p>
-                <p className="text-xs text-slate-500">Lat {position.lat.toFixed(5)}, Lon {position.lon.toFixed(5)}</p>
-              </>
-            ) : (
-              <>
-                <p className="font-medium text-slate-700">Current accuracy ±{Math.round(position.accuracy)} m</p>
-                <p className="text-xs text-slate-500">Lat {position.lat.toFixed(5)}, Lon {position.lon.toFixed(5)}</p>
-              </>
-            )}
-          </div>
-        ) : null}
 
         {!loading && status === 'granted' && stats.totalVisits === 0 ? (
           <div className="flex items-center gap-3 rounded-2xl bg-white p-4 text-slate-600 shadow-sm">
@@ -109,23 +94,26 @@ export function GeoStatusCard({
                 </p>
               </div>
             </div>
-            <StatsBadges stats={stats} />
             <div className="flex flex-col gap-3">
               <p className="text-sm font-semibold text-slate-700">Recent visits</p>
               <ul className="flex flex-col gap-2 text-sm text-slate-600">
                 {visits.slice(0, 3).map((visit) => (
                   <li
                     key={visit.activity_id}
-                    className="flex items-center justify-between rounded-2xl bg-white px-4 py-3 shadow-sm"
                   >
-                    <div className="flex flex-col">
-                      <span className="font-medium capitalize text-slate-800">{visit.sport}</span>
-                      <span className="text-xs text-slate-500">{formatDateTime(visit.started_at)}</span>
-                    </div>
-                    <div className="text-right text-xs text-slate-500">
-                      <span>{formatDistanceMeters(visit.total_distance_m)}</span>
-                      <span className="block text-[11px] text-slate-400">{visit.distance_m.toFixed(0)} m away</span>
-                    </div>
+                    <Link
+                      to={`/activity/${visit.activity_id}`}
+                      className="flex items-center justify-between rounded-2xl border border-transparent bg-white px-4 py-3 text-slate-600 shadow-sm transition hover:border-brand-300 hover:bg-brand-50 hover:text-slate-800"
+                    >
+                      <div className="flex flex-col">
+                        <span className="font-medium capitalize text-slate-800">{visit.sport}</span>
+                        <span className="text-xs text-slate-500">{formatDateTime(visit.started_at)}</span>
+                      </div>
+                      <div className="text-right text-xs text-slate-500">
+                        <span>{formatDistanceMeters(visit.total_distance_m)}</span>
+                        <span className="block text-[11px] text-slate-400">{visit.distance_m.toFixed(0)} m away</span>
+                      </div>
+                    </Link>
                   </li>
                 ))}
               </ul>
@@ -133,7 +121,21 @@ export function GeoStatusCard({
           </div>
         ) : null}
 
-        {error && status !== 'denied' ? (
+          {!loading && status !== 'denied' && position ? (
+              <div className="rounded-2xl bg-slate-100 p-4 text-sm text-slate-600">
+                  {position.source === 'manual' ? (
+                      <>
+                          <p className="text-xs text-slate-500">Lat {position.lat.toFixed(5)}, Lon {position.lon.toFixed(5)}</p>
+                      </>
+                  ) : (
+                      <>
+                          <p className="font-medium text-slate-700">Current accuracy ±{Math.round(position.accuracy)} m</p>
+                          <p className="text-xs text-slate-500">Lat {position.lat.toFixed(5)}, Lon {position.lon.toFixed(5)}</p>
+                      </>
+                  )}
+              </div>
+          ) : null}
+          {error && status !== 'denied' ? (
           <div className="rounded-2xl bg-rose-50 p-4 text-sm text-rose-600">{error}</div>
         ) : null}
 
