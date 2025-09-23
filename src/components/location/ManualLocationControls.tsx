@@ -172,9 +172,6 @@ export function ManualLocationControls({
                   Paste a Google Maps value or enter latitude and longitude separated by a comma.
                 </p>
               </div>
-              <Button type="button" variant="ghost" size="sm" onClick={handleClose}>
-                Close
-              </Button>
             </div>
             <form className="mt-4 flex flex-col gap-4" onSubmit={handleSubmit}>
               <div className="flex flex-col gap-1 text-xs text-slate-500">

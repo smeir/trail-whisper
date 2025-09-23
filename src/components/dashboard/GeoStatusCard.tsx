@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { BadgeCheckIcon, BanIcon, NavigationIcon, RefreshCwIcon } from 'lucide-react'
+import { BadgeCheckIcon, BanIcon, Building2Icon, HomeIcon, MapPinIcon, NavigationIcon, RefreshCwIcon } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -33,8 +33,16 @@ export function GeoStatusCard({
   onClearManual,
   mode,
 }: GeoStatusCardProps) {
-  const { locality, region, isLoading: placeLoading } = useReverseGeocode(position ?? undefined)
+  const { locality, region, placeType, isLoading: placeLoading } = useReverseGeocode(position ?? undefined)
   const placeLabel = locality ? (region ? `${locality}, ${region}` : locality) : null
+  const PlaceMarkerIcon =
+    placeType === 'city' || placeType === 'town'
+      ? Building2Icon
+      : placeType === 'village' || placeType === 'hamlet'
+        ? HomeIcon
+        : MapPinIcon
+  const placeTypeName = placeType && placeType !== 'other' ? placeType : 'place'
+  const placeTypeLabel = placeTypeName.charAt(0).toUpperCase() + placeTypeName.slice(1)
 
   return (
     <Card className="flex flex-col gap-4">
@@ -89,14 +97,25 @@ export function GeoStatusCard({
 
         {stats.totalVisits > 0 ? (
           <div className="flex flex-col gap-4">
-            <div className="flex items-center gap-3 rounded-2xl bg-emerald-50 p-4 text-slate-700">
-              <BadgeCheckIcon className="h-6 w-6 text-emerald-600" />
-              <div>
-                <p className="font-semibold text-emerald-700">Yes! You have been here {stats.totalVisits} times.</p>
-                <p className="text-sm text-emerald-600">
-                  Last visit {visits[0] ? formatRelative(visits[0].ended_at) : 'recently'}.
-                </p>
+            <div className="flex flex-col gap-4 rounded-2xl bg-emerald-50 p-4 text-slate-700 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
+              <div className="flex items-start gap-3">
+                <BadgeCheckIcon className="mt-1 h-6 w-6 text-emerald-600" />
+                <div>
+                  <p className="font-semibold text-emerald-700">Yes! You have been here {stats.totalVisits} times.</p>
+                  <p className="text-sm text-emerald-600">
+                    Last visit {visits[0] ? formatRelative(visits[0].ended_at) : 'recently'}.
+                  </p>
+                </div>
               </div>
+              {!placeLoading && placeLabel ? (
+                <div className="flex flex-col items-end gap-1 text-emerald-700">
+                  <PlaceMarkerIcon className="h-5 w-5 text-emerald-600" aria-hidden="true" />
+                  <span className="text-[11px] uppercase tracking-wide text-emerald-600">
+                    Nearest {placeTypeLabel}
+                  </span>
+                  <span className="text-sm font-semibold text-emerald-800 text-right">{placeLabel}</span>
+                </div>
+              ) : null}
             </div>
             <div className="flex flex-col gap-3">
               <p className="text-sm font-semibold text-slate-700">Recent visits</p>
@@ -125,23 +144,6 @@ export function GeoStatusCard({
           </div>
         ) : null}
 
-        {!loading && status !== 'denied' && position ? (
-          <div className="rounded-2xl bg-slate-100 p-4 text-sm text-slate-600">
-            {position.source === 'manual' ? (
-              <p className="text-xs text-slate-500">Lat {position.lat.toFixed(5)}, Lon {position.lon.toFixed(5)}</p>
-            ) : (
-              <>
-                <p className="font-medium text-slate-700">Current accuracy ±{Math.round(position.accuracy)} m</p>
-                <p className="text-xs text-slate-500">Lat {position.lat.toFixed(5)}, Lon {position.lon.toFixed(5)}</p>
-              </>
-            )}
-            {placeLoading ? (
-              <p className="mt-1 text-xs text-slate-400">Looking up nearby place…</p>
-            ) : placeLabel ? (
-              <p className="mt-1 text-xs text-slate-500">Near {placeLabel}</p>
-            ) : null}
-          </div>
-        ) : null}
         {error && status !== 'denied' ? (
           <div className="rounded-2xl bg-rose-50 p-4 text-sm text-rose-600">{error}</div>
         ) : null}
