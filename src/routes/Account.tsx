@@ -1,11 +1,14 @@
-import { LogOutIcon, MailIcon, UserIcon } from 'lucide-react'
+import { LogOutIcon, MailIcon, MapPinIcon, UserIcon } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { ManualLocationControls } from '@/components/location'
 import { useAuth } from '@/providers/AuthProvider'
+import { useGeolocation } from '@/hooks/useGeolocation'
 
 export default function Account() {
   const { user, signOut } = useAuth()
+  const { position, mode, setManualPosition, clearManualPosition, requestLocation } = useGeolocation()
 
   const handleLogout = async () => {
     await signOut()
@@ -39,6 +42,23 @@ export default function Account() {
           <Button variant="outline" className="w-full gap-2" onClick={handleLogout}>
             <LogOutIcon className="h-4 w-4" /> Sign out
           </Button>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader className="flex flex-col gap-2">
+          <CardTitle className="flex items-center gap-2 text-xl">
+            <MapPinIcon className="h-5 w-5 text-brand-500" /> Location override
+          </CardTitle>
+          <CardDescription>Provide manual coordinates when auto-detect struggles.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ManualLocationControls
+            position={position}
+            mode={mode}
+            onSetManual={setManualPosition}
+            onClearManual={clearManualPosition}
+            onRequestLocation={requestLocation}
+          />
         </CardContent>
       </Card>
     </div>

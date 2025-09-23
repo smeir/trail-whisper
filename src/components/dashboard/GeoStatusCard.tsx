@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import type { AggregatedVisitStats, Coordinates, VisitNear } from '@/lib/types'
 import { formatDateTime, formatDistanceMeters, formatRelative } from '@/utils/format'
-import { ManualLocationControls } from '@/components/location'
 import { useReverseGeocode } from '@/hooks/useReverseGeocode'
 
 interface GeoStatusCardProps {
@@ -16,9 +15,6 @@ interface GeoStatusCardProps {
   visits: VisitNear[]
   error?: string
   onRetry: () => void
-  onSetManual: (coords: Coordinates) => void
-  onClearManual: () => void
-  mode: 'auto' | 'manual'
 }
 
 export function GeoStatusCard({
@@ -29,9 +25,6 @@ export function GeoStatusCard({
   visits,
   error,
   onRetry,
-  onSetManual,
-  onClearManual,
-  mode,
 }: GeoStatusCardProps) {
   const { locality, region, placeType, isLoading: placeLoading } = useReverseGeocode(position ?? undefined)
   const placeLabel = locality ? (region ? `${locality}, ${region}` : locality) : null
@@ -51,7 +44,7 @@ export function GeoStatusCard({
           <NavigationIcon className="h-5 w-5 text-brand-500" /> Been here before?
         </CardTitle>
         <CardDescription>
-          We look for any of your activities that passed within 400 meters of your current spot.
+          We look for any of your activities that passed within 500 meters of your current spot.
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-5">
@@ -147,14 +140,6 @@ export function GeoStatusCard({
         {error && status !== 'denied' ? (
           <div className="rounded-2xl bg-rose-50 p-4 text-sm text-rose-600">{error}</div>
         ) : null}
-
-        <ManualLocationControls
-          position={position}
-          mode={mode}
-          onSetManual={onSetManual}
-          onClearManual={onClearManual}
-          onRequestLocation={onRetry}
-        />
       </CardContent>
     </Card>
   )

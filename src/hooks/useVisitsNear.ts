@@ -27,7 +27,7 @@ function aggregateVisits(visits: VisitNear[]): AggregatedVisitStats {
   return { totalVisits, totalDistance, recentVisits, bySport }
 }
 
-export function useVisitsNear(position?: Coordinates | null, radius = 400) {
+export function useVisitsNear(position?: Coordinates | null, radius = 500) {
   const query = useQuery<VisitsNearResult>({
     queryKey: ['visits-near', position?.lat, position?.lon, radius],
     queryFn: async () => {
