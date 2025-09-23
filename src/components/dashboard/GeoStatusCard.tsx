@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import type { AggregatedVisitStats, Coordinates, VisitNear } from '@/lib/types'
 import { formatDateTime, formatDistanceMeters, formatRelative } from '@/utils/format'
 import { ManualLocationControls } from '@/components/location'
+import { useReverseGeocode } from '@/hooks/useReverseGeocode'
 
 interface GeoStatusCardProps {
   loading: boolean
@@ -32,6 +33,9 @@ export function GeoStatusCard({
   onClearManual,
   mode,
 }: GeoStatusCardProps) {
+  const { locality, region, isLoading: placeLoading } = useReverseGeocode(position ?? undefined)
+  const placeLabel = locality ? (region ? `${locality}, ${region}` : locality) : null
+
   return (
     <Card className="flex flex-col gap-4">
       <CardHeader>
@@ -97,7 +101,7 @@ export function GeoStatusCard({
             <div className="flex flex-col gap-3">
               <p className="text-sm font-semibold text-slate-700">Recent visits</p>
               <ul className="flex flex-col gap-2 text-sm text-slate-600">
-                {visits.slice(0, 3).map((visit) => (
+                {visits.slice(0, 5).map((visit) => (
                   <li
                     key={visit.activity_id}
                   >
@@ -121,21 +125,24 @@ export function GeoStatusCard({
           </div>
         ) : null}
 
-          {!loading && status !== 'denied' && position ? (
-              <div className="rounded-2xl bg-slate-100 p-4 text-sm text-slate-600">
-                  {position.source === 'manual' ? (
-                      <>
-                          <p className="text-xs text-slate-500">Lat {position.lat.toFixed(5)}, Lon {position.lon.toFixed(5)}</p>
-                      </>
-                  ) : (
-                      <>
-                          <p className="font-medium text-slate-700">Current accuracy ±{Math.round(position.accuracy)} m</p>
-                          <p className="text-xs text-slate-500">Lat {position.lat.toFixed(5)}, Lon {position.lon.toFixed(5)}</p>
-                      </>
-                  )}
-              </div>
-          ) : null}
-          {error && status !== 'denied' ? (
+        {!loading && status !== 'denied' && position ? (
+          <div className="rounded-2xl bg-slate-100 p-4 text-sm text-slate-600">
+            {position.source === 'manual' ? (
+              <p className="text-xs text-slate-500">Lat {position.lat.toFixed(5)}, Lon {position.lon.toFixed(5)}</p>
+            ) : (
+              <>
+                <p className="font-medium text-slate-700">Current accuracy ±{Math.round(position.accuracy)} m</p>
+                <p className="text-xs text-slate-500">Lat {position.lat.toFixed(5)}, Lon {position.lon.toFixed(5)}</p>
+              </>
+            )}
+            {placeLoading ? (
+              <p className="mt-1 text-xs text-slate-400">Looking up nearby place…</p>
+            ) : placeLabel ? (
+              <p className="mt-1 text-xs text-slate-500">Near {placeLabel}</p>
+            ) : null}
+          </div>
+        ) : null}
+        {error && status !== 'denied' ? (
           <div className="rounded-2xl bg-rose-50 p-4 text-sm text-rose-600">{error}</div>
         ) : null}
 
