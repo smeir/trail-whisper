@@ -2,7 +2,7 @@
   "name": "Trail Whisper",
   "short_name": "Trail Whisper",
   "description": "Trail Whisper helps you track trail activities and nearby visits.",
-  "start_url": "/",
+  "start_url": "/trail-whisper/",
   "scope": "/",
   "display": "standalone",
   "background_color": "#0f172a",
