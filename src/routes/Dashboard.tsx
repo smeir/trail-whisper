@@ -35,7 +35,7 @@ export default function Dashboard() {
           onRetry={requestLocation}
         />
       </div>
-      <aside className="flex flex-col gap-4">
+      <aside className="hidden flex-col gap-4 lg:flex">
         <Card>
           <CardHeader className="flex flex-col gap-2">
             <CardTitle className="flex items-center gap-2 text-lg">
