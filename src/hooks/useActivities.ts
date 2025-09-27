@@ -11,15 +11,21 @@ interface ActivitiesFilter {
   to?: string
   near?: { lat: number; lon: number; radius: number }
   limit?: number
+  includeTrack?: boolean
 }
 
 export function useActivities(filters?: ActivitiesFilter) {
+  const needsTrack = Boolean(filters?.near || filters?.includeTrack)
+  const selectFields = needsTrack
+    ? 'id, sport, started_at, ended_at, total_distance_m, track_geom, created_at'
+    : 'id, sport, started_at, ended_at, total_distance_m, created_at'
+
   return useQuery<Activity[]>({
     queryKey: ['activities', filters],
     queryFn: async () => {
       let query = supabase
         .from('activities')
-        .select('id, sport, started_at, ended_at, total_distance_m, track_geom, created_at')
+        .select(selectFields)
         .order('started_at', { ascending: false })
 
       if (filters?.limit) {
@@ -43,7 +49,7 @@ export function useActivities(filters?: ActivitiesFilter) {
 
       let list = (data ?? []) as Activity[]
 
-      if (filters?.near) {
+      if (filters?.near && needsTrack) {
         const { lat, lon, radius } = filters.near
         list = list.filter((activity) => {
           const trackPoints = geoLineToLatLngs(activity.track_geom)

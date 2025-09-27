@@ -94,7 +94,7 @@ export function GeoStatusCard({
               <div className="flex items-start gap-3">
                 <BadgeCheckIcon className="mt-1 h-6 w-6 text-emerald-600" />
                 <div>
-                  <p className="font-semibold text-emerald-700">Yes! You have been here {stats.totalVisits} times.</p>
+                  <p className="text-xl font-semibold text-emerald-700">Yes! You have been here {stats.totalVisits} times.</p>
                   <p className="text-sm text-emerald-600">
                     Last visit {visits[0] ? formatRelative(visits[0].ended_at) : 'recently'}.
                   </p>
