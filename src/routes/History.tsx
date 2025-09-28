@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { CalendarIcon, FilterIcon, Loader2Icon, MapPinIcon, Trash2Icon } from 'lucide-react'
 
-import { Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 
@@ -15,7 +15,7 @@ import { useGeolocation } from '@/hooks/useGeolocation'
 import type { SportType } from '@/lib/fit'
 import { Skeleton } from '@/components/ui/skeleton'
 import { supabase } from '@/lib/supabase'
-import { formatDateTime, formatDistanceMeters } from '@/utils/format'
+import { formatDateTime, formatDistanceMeters, formatRelative } from '@/utils/format'
 import { useAuth } from '@/providers/AuthProvider'
 
 const sportOptions: Array<{ label: string; value: SportType | 'all' }> = [
@@ -56,6 +56,7 @@ export default function History() {
   }, [from, position, sport, to, useNearby])
 
   const { data: activities, isLoading } = useActivities(filters)
+  const navigate = useNavigate()
 
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
 
@@ -203,8 +204,12 @@ export default function History() {
       ) : activities && activities.length ? (
         <div className="flex flex-col gap-4">
           <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-            <p className="text-sm font-semibold text-slate-600">
-              Showing {activities.length} workout{activities.length === 1 ? '' : 's'}
+            <p className="text-sm text-slate-600">
+              Showing{' '}
+              <span className="font-semibold text-slate-900">
+                {activities.length}
+              </span>{' '}
+              workout{activities.length === 1 ? '' : 's'}
             </p>
             <Button
               type="button"
@@ -222,55 +227,96 @@ export default function History() {
               Delete all
             </Button>
           </div>
-          <ul className="flex flex-col gap-3">
-            {activities.map((activity) => {
-              const isDeleting = deleteActivityMutation.isPending && pendingDeleteId === activity.id
-              return (
-                <li
-                  key={activity.id}
-                  className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
-                >
-                  <div className="flex flex-wrap items-center justify-between gap-4">
-                    <div className="flex flex-wrap items-center gap-3">
-                      <span className="rounded-full bg-brand-100 px-3 py-1 text-xs font-semibold uppercase text-brand-700">
-                        {activity.sport}
-                      </span>
-                      <span className="text-sm font-semibold text-slate-700">
-                        {formatDistanceMeters(activity.total_distance_m)}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Link
-                        to={`/activity/${activity.id}`}
-                        className="inline-flex items-center justify-center rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-brand-600 transition hover:border-brand-300 hover:bg-brand-50"
+          <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-slate-200">
+                <thead className="bg-slate-50">
+                  <tr className="text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    <th className="px-4 py-3">Sport</th>
+                    <th className="hidden px-4 py-3 sm:table-cell">Distance</th>
+                    <th className="px-4 py-3">
+                      <span className="hidden sm:inline">Started</span>
+                      <span className="sm:hidden">Started · Distance</span>
+                    </th>
+                    <th className="hidden px-4 py-3 sm:table-cell">Uploaded</th>
+                    <th className="px-4 py-3 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200 text-sm text-slate-700">
+                  {activities.map((activity) => {
+                    const isDeleting = deleteActivityMutation.isPending && pendingDeleteId === activity.id
+                    const handleRowNavigate = () => {
+                      if (deleteAllMutation.isPending || deleteActivityMutation.isPending) return
+                      navigate(`/activity/${activity.id}`)
+                    }
+                    return (
+                      <tr
+                        key={activity.id}
+                        tabIndex={0}
+                        onClick={handleRowNavigate}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault()
+                            handleRowNavigate()
+                          }
+                        }}
+                        className="cursor-pointer hover:bg-slate-50/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500"
                       >
-                        View details
-                      </Link>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="text-rose-600 hover:text-rose-700"
-                        onClick={() => handleDeleteActivity(activity.id)}
-                        disabled={isDeleting || deleteAllMutation.isPending}
-                      >
-                        {isDeleting ? (
-                          <Loader2Icon className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Trash2Icon className="h-4 w-4" />
-                        )}
-                        <span className="hidden sm:inline">Delete</span>
-                      </Button>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-slate-600">
-                    <CalendarIcon className="h-4 w-4 text-slate-400" />
-                    {formatDateTime(activity.started_at)}
-                  </div>
-                </li>
-              )
-            })}
-          </ul>
+                        <td className="whitespace-nowrap px-4 py-4">
+                          <span className="inline-flex rounded-full bg-brand-100 px-3 py-1 text-xs font-semibold uppercase text-brand-700">
+                            {activity.sport}
+                          </span>
+                        </td>
+                        <td className="hidden whitespace-nowrap px-4 py-4 font-semibold sm:table-cell">
+                          {formatDistanceMeters(activity.total_distance_m)}
+                        </td>
+                        <td className="px-4 py-4 whitespace-normal sm:whitespace-nowrap">
+                          <div className="flex items-center gap-2">
+                            <CalendarIcon className="h-4 w-4 text-slate-400" />
+                            <div className="flex flex-col">
+                              <span className="text-sm text-slate-700">
+                                {formatDateTime(activity.started_at)}
+                              </span>
+                              <span className="text-sm font-semibold text-slate-900 sm:hidden">
+                                {formatDistanceMeters(activity.total_distance_m)}
+                              </span>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="hidden whitespace-nowrap px-4 py-4 text-slate-500 sm:table-cell">
+                          <span title={formatDateTime(activity.created_at)}>
+                            {formatRelative(activity.created_at)}
+                          </span>
+                        </td>
+                        <td className="px-4 py-4">
+                          <div className="flex justify-end">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="text-rose-600 hover:text-rose-700"
+                              onClick={(event) => {
+                                event.stopPropagation()
+                                handleDeleteActivity(activity.id)
+                              }}
+                              disabled={isDeleting || deleteAllMutation.isPending}
+                            >
+                              {isDeleting ? (
+                                <Loader2Icon className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Trash2Icon className="h-4 w-4" />
+                              )}
+                              <span className="hidden sm:inline">Delete</span>
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       ) : (
         <div className="rounded-3xl border border-dashed border-slate-200 bg-slate-50 p-12 text-center text-slate-500">

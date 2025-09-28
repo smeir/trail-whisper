@@ -9,7 +9,7 @@ export function formatDistanceMeters(distance: number) {
 
 export function formatDateTime(value: string) {
   try {
-    return format(parseISO(value), 'PP p')
+    return format(parseISO(value), 'PP HH:mm')
   } catch (error) {
     return value
   }

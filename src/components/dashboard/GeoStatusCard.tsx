@@ -43,9 +43,6 @@ export function GeoStatusCard({
         <CardTitle className="flex items-center gap-2 text-xl">
           <NavigationIcon className="h-5 w-5 text-brand-500" /> Been here before?
         </CardTitle>
-        <CardDescription>
-          We look for any of your activities that passed within 500 meters of your current spot.
-        </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-5">
         {loading ? (
@@ -94,7 +91,10 @@ export function GeoStatusCard({
               <div className="flex items-start gap-3">
                 <BadgeCheckIcon className="mt-1 h-6 w-6 text-emerald-600" />
                 <div>
-                  <p className="text-xl font-semibold text-emerald-700">Yes! You have been here {stats.totalVisits} times.</p>
+                  <p className="text-xl font-semibold text-emerald-700">
+                    Yes! You have been here{' '}
+                    <span className="font-bold text-emerald-900">{stats.totalVisits}</span> times.
+                  </p>
                   <p className="text-sm text-emerald-600">
                     Last visit {visits[0] ? formatRelative(visits[0].ended_at) : 'recently'}.
                   </p>
