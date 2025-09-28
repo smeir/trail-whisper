@@ -134,13 +134,13 @@ export function ActivityMap({
       }
 
       if (track.length === 1) {
-        map.flyTo({ center: [track[0].lon, track[0].lat], zoom })
+        map.jumpTo({ center: [track[0].lon, track[0].lat], zoom })
       } else {
         const bounds = track.reduce((acc, point) => acc.extend([point.lon, point.lat]), new maplibregl.LngLatBounds(
           [track[0].lon, track[0].lat],
           [track[0].lon, track[0].lat],
         ))
-        map.fitBounds(bounds, { padding: 40, maxZoom: zoom })
+        map.fitBounds(bounds, { padding: 40, maxZoom: zoom, duration: 0 })
       }
     }
 

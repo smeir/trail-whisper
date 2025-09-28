@@ -81,9 +81,11 @@ export default function ActivityDetail() {
 
     return (
         <div className="flex flex-col gap-6">
-            <div className="flex flex-col gap-2">
-                <h1 className="text-2xl font-semibold text-slate-900 capitalize">{activity.sport}</h1>
-                <p className="text-sm text-slate-600">{formatDateTime(activity.started_at)} · {formatDistanceMeters(activity.total_distance_m)}</p>
+            <div className="flex flex-col gap-1.5">
+                <div className="flex flex-wrap items-center gap-3">
+                    <h1 className="text-2xl font-semibold text-slate-900 capitalize">{activity.sport}</h1>
+                    <span className="text-base text-slate-600">{formatDateTime(activity.started_at)}</span>
+                </div>
             </div>
             <ActivityMap
                 track={trackPoints}
@@ -91,43 +93,29 @@ export default function ActivityDetail() {
                 highlights={highlightPoints}
                 currentLocation={currentPosition ? { lat: currentPosition.lat, lon: currentPosition.lon } : undefined}
                 zoom={13}
+                height={560}
+                className="w-full"
             />
-            <Card>
-                <CardHeader className="flex flex-col gap-2">
-                    <CardTitle className="flex items-center gap-2 text-xl">
+            <Card className="w-full p-4 md:p-5">
+                <CardHeader className="flex flex-col gap-1.5">
+                    <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
                         <MapIcon className="h-5 w-5 text-brand-500" /> Activity overview
                     </CardTitle>
                     <CardDescription>Track summary generated from the uploaded FIT file.</CardDescription>
                 </CardHeader>
-                <CardContent className="grid gap-4 md:grid-cols-2">
-                    <div className="rounded-2xl bg-white p-4 shadow-sm">
+                <CardContent className="grid gap-3 md:grid-cols-3">
+                    <div className="rounded-2xl bg-white p-3 shadow-sm">
                         <p className="text-xs uppercase text-slate-500">Start</p>
                         <p className="text-sm font-semibold text-slate-800">{formatDateTime(activity.started_at)}</p>
                     </div>
-                    <div className="rounded-2xl bg-white p-4 shadow-sm">
+                    <div className="rounded-2xl bg-white p-3 shadow-sm">
                         <p className="text-xs uppercase text-slate-500">End</p>
                         <p className="text-sm font-semibold text-slate-800">{formatDateTime(activity.ended_at)}</p>
                     </div>
-                    <div className="rounded-2xl bg-white p-4 shadow-sm">
+                    <div className="rounded-2xl bg-white p-3 shadow-sm">
                         <p className="text-xs uppercase text-slate-500">Distance</p>
                         <p className="text-sm font-semibold text-slate-800">{formatDistanceMeters(activity.total_distance_m)}</p>
                     </div>
-                    {startPoint ? (
-                        <div className="rounded-2xl bg-white p-4 shadow-sm">
-                            <p className="text-xs uppercase text-slate-500">Start coords</p>
-                            <p className="text-sm font-semibold text-slate-800">
-                                {startPoint.lat.toFixed(4)}, {startPoint.lon.toFixed(4)}
-                            </p>
-                        </div>
-                    ) : null}
-                    {endPoint ? (
-                        <div className="rounded-2xl bg-white p-4 shadow-sm">
-                            <p className="text-xs uppercase text-slate-500">Finish coords</p>
-                            <p className="text-sm font-semibold text-slate-800">
-                                {endPoint.lat.toFixed(4)}, {endPoint.lon.toFixed(4)}
-                            </p>
-                        </div>
-                    ) : null}
                     <Button onClick={handleDownload} variant="outline" className="col-span-full w-full gap-2">
                         <DownloadIcon className="h-4 w-4" /> Download GeoJSON
                     </Button>
