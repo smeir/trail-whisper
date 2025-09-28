@@ -2,10 +2,10 @@ import { Link } from 'react-router-dom'
 import { CalendarIcon, MapPinIcon } from 'lucide-react'
 
 import { Card, CardContent } from '@/components/ui/card'
+import { ActivityMap } from '@/components/maps/ActivityMap'
 import type { Activity } from '@/lib/types'
 import { formatDateTime, formatDistanceMeters } from '@/utils/format'
 import { geoLineToLatLngs } from '@/utils/geo'
-import { MapView } from '@/components/MapView'
 
 interface ActivityCardProps {
   activity: Activity
@@ -15,18 +15,20 @@ export function ActivityCard({ activity }: ActivityCardProps) {
   const trackPoints = geoLineToLatLngs(activity.track_geom)
   const focusPoint = trackPoints[Math.floor(trackPoints.length / 2)] ?? trackPoints[0]
   const startPoint = trackPoints[0]
-  const markers = startPoint
-    ? [{ id: `${activity.id}-start`, point: startPoint, label: 'Start' as const }]
+  const highlightPoints = startPoint
+    ? [{ id: `${activity.id}-start`, point: startPoint, label: 'Start', color: '#16a34a' }]
     : []
 
   return (
     <Card className="overflow-hidden">
       <CardContent className="flex flex-col gap-4 p-0">
-        <MapView
-          className="h-48"
+        <ActivityMap
           track={trackPoints}
           center={focusPoint}
-          activities={markers}
+          highlights={highlightPoints}
+          zoom={13}
+          height={220}
+          className="w-full"
         />
         <div className="flex flex-col gap-3 px-6 pb-6">
           <div className="flex items-center justify-between">

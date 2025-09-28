@@ -185,7 +185,7 @@ export function ManualLocationControls({
                   required
                 />
                 <span className="text-[11px] text-slate-400">
-                  Accepts a single string like "40.7128,-74.0060" from Google Maps.
+                  Accepts a single string like &quot;40.7128,-74.0060&quot; from Google Maps.
                 </span>
               </div>
               {manualError ? <p className="text-xs text-rose-600">{manualError}</p> : null}
