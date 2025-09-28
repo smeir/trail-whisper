@@ -8,6 +8,7 @@
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "strict": true,
+    "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"]
     },
@@ -23,4 +24,3 @@
   "include": ["src"],
   "references": []
 }
-
