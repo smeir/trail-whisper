@@ -2,7 +2,7 @@ import { useMemo } from 'react'
 import { useParams } from 'react-router-dom'
 import { DownloadIcon, MapIcon } from 'lucide-react'
 
-import { MapView } from '@/components/MapView'
+import { ActivityRouteMap } from '@/components/maps/ActivityRouteMap'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useActivityDetail } from '@/hooks/useActivityDetail'
@@ -15,20 +15,28 @@ export default function ActivityDetail() {
   const { data: activity, isLoading } = useActivityDetail(id)
 
   const trackPoints = useMemo(() => geoLineToLatLngs(activity?.track_geom), [activity?.track_geom])
-  const focusPoint = useMemo(
-    () => trackPoints[Math.floor(trackPoints.length / 2)] ?? trackPoints[0],
-    [trackPoints],
-  )
   const startPoint = trackPoints[0]
   const endPoint = trackPoints[trackPoints.length - 1]
   const highlightPoints = useMemo(() => {
     if (!activity) return []
-    const markers: Array<{ id: string; point: { lat: number; lon: number }; label?: string; color?: string }> = []
+    const markers: Array<{ id: string; lat: number; lon: number; label?: string; role?: 'start' | 'finish' }> = []
     if (startPoint) {
-      markers.push({ id: `${activity.id}-start`, point: startPoint, label: 'Start', color: '#16a34a' })
+      markers.push({
+        id: `${activity.id}-start`,
+        lat: startPoint.lat,
+        lon: startPoint.lon,
+        label: 'Start',
+        role: 'start',
+      })
     }
     if (endPoint) {
-      markers.push({ id: `${activity.id}-end`, point: endPoint, label: 'Finish', color: '#dc2626' })
+      markers.push({
+        id: `${activity.id}-end`,
+        lat: endPoint.lat,
+        lon: endPoint.lon,
+        label: 'Finish',
+        role: 'finish',
+      })
     }
     return markers
   }, [activity, startPoint, endPoint])
@@ -83,7 +91,7 @@ export default function ActivityDetail() {
         <h1 className="text-2xl font-semibold text-slate-900 capitalize">{activity.sport}</h1>
         <p className="text-sm text-slate-600">{formatDateTime(activity.started_at)} · {formatDistanceMeters(activity.total_distance_m)}</p>
       </div>
-      <MapView className="h-96" track={trackPoints} center={focusPoint} activities={highlightPoints} zoom={13} />
+      <ActivityRouteMap className="h-96" track={trackPoints} highlights={highlightPoints} />
       <Card>
         <CardHeader className="flex flex-col gap-2">
           <CardTitle className="flex items-center gap-2 text-xl">
