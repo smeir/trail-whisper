@@ -6,6 +6,7 @@ import { ActivityMap } from '@/components/maps/ActivityMap'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useActivityDetail } from '@/hooks/useActivityDetail'
+import { useGeolocation } from '@/hooks/useGeolocation'
 import { geoLineToLatLngs } from '@/utils/geo'
 import { formatDateTime, formatDistanceMeters } from '@/utils/format'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -13,6 +14,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 export default function ActivityDetail() {
     const { id } = useParams<{ id: string }>()
     const { data: activity, isLoading } = useActivityDetail(id)
+    const { position: currentPosition } = useGeolocation()
 
     const trackPoints = useMemo(() => geoLineToLatLngs(activity?.track_geom), [activity?.track_geom])
     const focusPoint = useMemo(
@@ -83,7 +85,13 @@ export default function ActivityDetail() {
                 <h1 className="text-2xl font-semibold text-slate-900 capitalize">{activity.sport}</h1>
                 <p className="text-sm text-slate-600">{formatDateTime(activity.started_at)} · {formatDistanceMeters(activity.total_distance_m)}</p>
             </div>
-            <ActivityMap track={trackPoints} center={focusPoint} highlights={highlightPoints} zoom={13} />
+            <ActivityMap
+                track={trackPoints}
+                center={focusPoint}
+                highlights={highlightPoints}
+                currentLocation={currentPosition ? { lat: currentPosition.lat, lon: currentPosition.lon } : undefined}
+                zoom={13}
+            />
             <Card>
                 <CardHeader className="flex flex-col gap-2">
                     <CardTitle className="flex items-center gap-2 text-xl">
