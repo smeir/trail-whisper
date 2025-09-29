@@ -1,13 +1,13 @@
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
-import { ActivityIcon, HistoryIcon, MapPinIcon, UploadCloudIcon, UserCircleIcon } from 'lucide-react'
+import {  HistoryIcon, MapPinIcon, UploadCloudIcon, UserCircleIcon, SignpostBig} from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 
 const navItems = [
-  { to: '/app', label: 'Dashboard', icon: MapPinIcon },
-  { to: '/upload', label: 'Upload', icon: UploadCloudIcon },
-  { to: '/history', label: 'History', icon: HistoryIcon },
-  { to: '/account', label: 'Account', icon: UserCircleIcon },
+    {to: '/app', label: 'Dashboard', icon: MapPinIcon},
+    {to: '/history', label: 'History', icon: HistoryIcon},
+    {to: '/upload', label: 'Upload', icon: UploadCloudIcon},
+    {to: '/account', label: 'Account', icon: UserCircleIcon},
 ]
 
 export function AppLayout() {
@@ -18,7 +18,7 @@ export function AppLayout() {
       <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/80 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
           <Link to="/app" className="flex items-center gap-2 text-lg font-semibold text-slate-900">
-            <ActivityIcon className="h-6 w-6 text-brand-500" /> Trail Whisper
+            <SignpostBig className="h-6 w-6 text-brand-500" /> Trail Whisper
           </Link>
           <nav className="hidden items-center gap-2 md:flex">
             {navItems.map((item) => (

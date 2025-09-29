@@ -41,7 +41,7 @@ export function GeoStatusCard({
     <Card className="flex flex-col gap-4">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-xl">
-          <NavigationIcon className="h-5 w-5 text-brand-500" /> Been here before?
+          Been here before?
         </CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-5">
