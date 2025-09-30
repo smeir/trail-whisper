@@ -33,6 +33,7 @@ Trail Whisper is a production-ready React + TypeScript application for exploring
      ```bash
      VITE_SUPABASE_URL="https://<project>.supabase.co"
      VITE_SUPABASE_ANON_KEY="<anon-key>"
+     VITE_EMAIL_REDIRECT_URL="https://smeir.github.io/trail-whisper/"
      ```
 
 3. **Node.js 18+** with your preferred package manager (npm is used in the examples below).

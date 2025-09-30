@@ -33,7 +33,13 @@ export default function Login() {
         if (error) throw error
         toast.success('Welcome back!')
       } else {
-        const { data, error } = await supabase.auth.signUp({ email, password })
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo: import.meta.env.VITE_EMAIL_REDIRECT_URL
+          }
+        })
         if (error) throw error
         if (data.session) {
           toast.success('Account created successfully.')
