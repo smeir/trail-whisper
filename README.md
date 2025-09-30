@@ -5,7 +5,7 @@
 [![React](https://img.shields.io/npm/v/react?label=react)](https://www.npmjs.com/package/react)
 [![Vite](https://img.shields.io/npm/v/vite?label=vite)](https://www.npmjs.com/package/vite)
 
-<div style="text-align: center;"><img src="public/favicon-96x96.png" alt="Trail Whisper Favicon" width="96" height="96" style="border-radius: 12px; border: 1px solid #ddd;" /></div>
+<p align="center"><img src="public/favicon-96x96.png" alt="Trail Whisper Favicon" width="96" height="96" style="border-radius: 12px; border: 1px solid #ddd;" /></p>
 
 Trail Whisper is a production-ready React + TypeScript application for exploring your outdoor workouts. It connects to Supabase for authentication, storage and geospatial queries, parses FIT files on the client, and surfaces whether you have already visited your current location.
 
