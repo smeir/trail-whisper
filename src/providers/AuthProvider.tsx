@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import type { Session, User } from '@supabase/supabase-js'
 
 import { supabase } from '@/lib/supabase'
@@ -41,16 +41,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [])
 
+  const signOut = useCallback(async () => {
+    try {
+      const { error } = await supabase.auth.signOut()
+      if (error) {
+        throw error
+      }
+    } catch {
+      try {
+        await supabase.auth.signOut({ scope: 'local' })
+      } catch {
+        // Ignore sign-out errors; local state is cleared below.
+      }
+    } finally {
+      setSession(null)
+      setUser(null)
+      setLoading(false)
+    }
+  }, [])
+
   const value = useMemo<AuthContextValue>(
     () => ({
       user,
       session,
       loading,
-      signOut: async () => {
-        await supabase.auth.signOut()
-      },
+      signOut,
     }),
-    [loading, session, user],
+    [loading, session, signOut, user],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
