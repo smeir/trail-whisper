@@ -9,6 +9,10 @@
     "preview": "vite preview",
     "lint": "eslint . --ext ts,tsx"
   },
+  "engines": {
+    "node": ">=22.20 <23",
+    "npm": ">=11.7 <12"
+  },
   "dependencies": {
     "@supabase/supabase-js": "^2.42.7",
     "@tanstack/react-query": "^5.28.4",
@@ -39,6 +43,6 @@
     "postcss": "^8.4.35",
     "tailwindcss": "^3.4.3",
     "typescript": "^5.4.3",
-    "vite": "^5.0.8"
+    "vite": "^7.3.1"
   }
 }

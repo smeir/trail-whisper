@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import { LogInIcon, UserPlusIcon } from 'lucide-react'
 import { toast } from 'sonner'
@@ -18,6 +18,22 @@ export default function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const formRef = useRef<HTMLFormElement | null>(null)
+
+  const storeCredentials = async () => {
+    if (!formRef.current || typeof window === 'undefined') return
+    const PasswordCredentialCtor = (
+      window as Window & typeof globalThis & { PasswordCredential?: typeof PasswordCredential }
+    ).PasswordCredential
+    if (!PasswordCredentialCtor || !navigator.credentials) return
+
+    try {
+      const credential = new PasswordCredentialCtor(formRef.current)
+      await navigator.credentials.store(credential)
+    } catch {
+      // Ignore unsupported or blocked credential storage.
+    }
+  }
 
   if (user && !loading) {
     return <Navigate to="/app" replace />
@@ -31,6 +47,7 @@ export default function Login() {
       if (mode === 'signIn') {
         const { error } = await supabase.auth.signInWithPassword({ email, password })
         if (error) throw error
+        void storeCredentials()
         toast.success('Welcome back!')
       } else {
         const { data, error } = await supabase.auth.signUp({
@@ -42,6 +59,7 @@ export default function Login() {
         })
         if (error) throw error
         if (data.session) {
+          void storeCredentials()
           toast.success('Account created successfully.')
         } else {
           toast.success('Check your inbox to confirm your email address.')
@@ -73,14 +91,21 @@ export default function Login() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form
+            ref={formRef}
+            onSubmit={handleSubmit}
+            autoComplete="on"
+            method="post"
+            className="space-y-5"
+          >
             <div className="space-y-2 text-left">
               <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
                 type="email"
+                name="username"
                 inputMode="email"
-                autoComplete="email"
+                autoComplete="username"
                 required
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
@@ -92,6 +117,7 @@ export default function Login() {
               <Input
                 id="password"
                 type="password"
+                name="password"
                 autoComplete={isSignIn ? 'current-password' : 'new-password'}
                 required
                 minLength={6}
