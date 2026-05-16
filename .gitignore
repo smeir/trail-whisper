@@ -4,6 +4,7 @@ dist
 vite.config.ts.timestamp-*
 .env
 .env.*
+!.env.example
 .idea
 .vscode
 *.local

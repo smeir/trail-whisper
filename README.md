@@ -13,7 +13,7 @@ Trail Whisper is a production-ready React + TypeScript application for exploring
 
 - **Email/password authentication** via Supabase Auth with persistent sessions.
 - **Per-user activity storage** backed by PostGIS geography columns and row-level security.
-- **Geolocation dashboard** that asks for permission, checks for previous visits within 400 m, and renders a mini map of nearby workouts (< 2 km).
+- **Geolocation dashboard** that asks for permission, checks for previous visits within 500 m, and renders a mini map of those nearby workouts.
 - **FIT file ingestion** with client-side previews and WKT payloads ready for PostGIS.
 - **History explorer** with sport/date/location filters and card-based mini maps.
 - **Activity detail** pages including map visualisations and GeoJSON export.
@@ -28,13 +28,7 @@ Trail Whisper is a production-ready React + TypeScript application for exploring
    - Run the SQL script [`supabase/setup.sql`](./supabase/setup.sql) using the SQL editor or the Supabase CLI to create the `activities` table, policies, and RPC functions.
 
 2. **Environment variables**
-   - Copy `.env.example` (create it if it does not exist) to `.env.local` and set:
-
-     ```bash
-     VITE_SUPABASE_URL="https://<project>.supabase.co"
-     VITE_SUPABASE_ANON_KEY="<anon-key>"
-     VITE_EMAIL_REDIRECT_URL="https://smeir.github.io/trail-whisper/"
-     ```
+   - Copy [`.env.example`](./.env.example) to `.env` (gitignored) and fill in your Supabase project URL, anon key and email redirect URL.
 
 3. **Node.js 18+** with your preferred package manager (npm is used in the examples below).
 
@@ -61,7 +55,7 @@ The SQL file [`supabase/setup.sql`](./supabase/setup.sql) provisions everything 
 
 - `activities` table scoped to `auth.users` via row-level security.
 - GIST indexes for performant geospatial lookups.
-- `find_visits_near(lat, lon, radius_m)` RPC that powers the 400 m dashboard check and near-by list.
+- `find_visits_near(lat, lon, radius_m)` RPC that powers the dashboard check and near-by list. The client always passes `radius_m = 500`; the SQL function's own `400` default applies only when the parameter is omitted.
 - `get_activity_geojson(activity_id)` RPC for serving LineString and Point geometries as GeoJSON when needed.
 
 Run it once per project. If you make schema updates, re-run the script or create a migration through the Supabase migration flow.
@@ -70,7 +64,7 @@ Run it once per project. If you make schema updates, re-run the script or create
 
 - **Routing**: `react-router-dom` with protected routes that gate everything behind Supabase email authentication.
 - **Data fetching**: TanStack Query handles cache invalidation after uploads and ensures optimistic UI states.
-- **Maps**: React Leaflet + OpenStreetMap tiles, with markers for current location and activities.
+- **Maps**: MapLibre GL with OpenFreeMap vector tiles (`tiles.openfreemap.org/styles/liberty`), with markers for current location and activities.
 - **FIT parsing**: `fit-file-parser` converts tracks to WKT (`LINESTRING`) and calculates simple centroids client-side.
 - **Styling**: Tailwind CSS with lightweight shadcn-inspired building blocks under `src/components/ui`.
 - **Geospatial helpers**: Haversine distance utilities live in `src/utils/geo.ts` to support proximity filtering and map markers.
