@@ -47,7 +47,7 @@ export function useActivities(filters?: ActivitiesFilter) {
       const { data, error } = await query
       if (error) throw error
 
-      let list = (data ?? []) as Activity[]
+      let list = (data ?? []) as unknown as Activity[]
 
       if (filters?.near && needsTrack) {
         const { lat, lon, radius } = filters.near

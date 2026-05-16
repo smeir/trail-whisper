@@ -23,7 +23,9 @@ export default function Login() {
   const storeCredentials = async () => {
     if (!formRef.current || typeof window === 'undefined') return
     const PasswordCredentialCtor = (
-      window as Window & typeof globalThis & { PasswordCredential?: typeof PasswordCredential }
+      window as Window & typeof globalThis & {
+        PasswordCredential?: new (form: HTMLFormElement) => Credential
+      }
     ).PasswordCredential
     if (!PasswordCredentialCtor || !navigator.credentials) return
 
