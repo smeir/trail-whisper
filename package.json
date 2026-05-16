@@ -18,8 +18,8 @@
     "npm": ">=11.7 <12"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.42.7",
-    "@tanstack/react-query": "^5.28.4",
+    "@supabase/supabase-js": "^2.105.4",
+    "@tanstack/react-query": "^5.100.10",
     "clsx": "^2.1.0",
     "date-fns": "^3.6.0",
     "fit-file-parser": "^1.12.0",
@@ -30,28 +30,28 @@
     "react-dropzone": "^14.2.3",
     "react-router-dom": "^6.22.3",
     "sonner": "^1.5.0",
-    "tailwind-merge": "^2.2.2",
-    "zod": "^3.23.8"
+    "tailwind-merge": "^3.6.0",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@playwright/test": "^1.60.0",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",
-    "@types/node": "^20.11.30",
+    "@types/node": "^22.19.19",
     "@types/react": "^18.2.66",
     "@types/react-dom": "^18.2.22",
     "@typescript-eslint/eslint-plugin": "^7.5.0",
     "@typescript-eslint/parser": "^7.5.0",
     "@vitejs/plugin-react": "^4.2.0",
-    "autoprefixer": "^10.4.18",
+    "autoprefixer": "^10.5.0",
     "eslint": "^8.57.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-react": "^7.34.1",
     "jsdom": "^29.1.1",
     "postcss": "^8.4.35",
     "tailwindcss": "^3.4.3",
-    "typescript": "^5.4.3",
+    "typescript": "^6.0.3",
     "vite": "^7.3.1",
     "vitest": "^4.1.6"
   }
