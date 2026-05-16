@@ -13,7 +13,7 @@ function parseLineString(input: string) {
       if (json?.coordinates) {
         return json.coordinates.map(([lon, lat]) => ({ lat, lon }))
       }
-    } catch (error) {
+    } catch {
       return []
     }
   }
