@@ -7,7 +7,11 @@
 
 <p align="center"><img src="public/favicon-96x96.png" alt="Trail Whisper Favicon" width="96" height="96" style="border-radius: 12px; border: 1px solid #ddd;" /></p>
 
-Trail Whisper is a production-ready React + TypeScript application for exploring your outdoor workouts. It connects to Supabase for authentication, storage and geospatial queries, parses FIT files on the client, and surfaces whether you have already visited your current location.
+Have I been here before?
+
+That is the question Trail Whisper answers. If you spend enough time running, riding or hiking, trails start to blur together — you stand at a junction with the nagging feeling you've passed this way, but you can't be sure. Trail Whisper remembers for you. Upload the GPS tracks from your outdoor workouts, and the app keeps a personal map of everywhere your own two feet (or wheels) have already taken you.
+
+Out on the move, open it and it quietly checks your current spot against your history: a familiar place, or new ground? Back home, browse every activity you've recorded, filter by sport, date or location, and relive each route on the map. It's a private logbook for the explorer in you — proof of the ground you've covered, and a gentle nudge toward the corners you haven't.
 
 ## Features
 
