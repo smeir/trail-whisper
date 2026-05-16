@@ -33,7 +33,11 @@ location.
 - `npm run build` produces the production build in `dist/` (base path
   `/trail-whisper/` for GitHub Pages).
 - `npm run preview` serves the production bundle locally for smoke testing.
-- `npm run lint` runs ESLint over `ts`/`tsx` files; keep it clean before pushing.
+- `npm run lint` runs ESLint (flat config, `eslint.config.js`) over `ts`/`tsx`
+  files; keep it clean before pushing.
+- `npm run typecheck` runs `tsc --noEmit` (the build itself does not type-check).
+- `npm test` runs the Vitest unit/component suite; `npm run test:watch` for
+  watch mode; `npm run test:e2e` runs the Playwright smoke suite.
 - Env vars are required at build time: `VITE_SUPABASE_URL`,
   `VITE_SUPABASE_ANON_KEY`, `VITE_EMAIL_REDIRECT_URL`. Keep them in a local
   `.env` / `.env.local` (gitignored); never commit secrets.
@@ -49,11 +53,17 @@ location.
   `@/lib/utils` to compose conditional class names.
 
 ## Testing Guidelines
-- Automated testing is not yet configured; the planned target is Vitest +
-  Testing Library with `ComponentName.test.tsx` next to the component.
-- Until then, smoke-test via `npm run preview`: sign in on `/login`, accept
-  geolocation, upload a FIT file on `/upload`, verify it appears in `/history`
-  and the dashboard, and open `/activity/:id` for the map + GeoJSON export.
+- Vitest + Testing Library (jsdom). Place specs next to the unit as
+  `Name.test.ts(x)`; pure logic, component smoke tests, and a FIT-binary
+  fixture (`src/test/fit-fixture.ts`) exercising the real `fit-file-parser`.
+- Playwright smoke suite in `e2e/` runs offline (Supabase env stubbed; with no
+  session the app redirects to `/login`).
+- Run `npm run lint`, `npm run typecheck`, `npm test`, and `npm run test:e2e`
+  before pushing; all must be green.
+- Still manually smoke-test map/upload flows via `npm run preview` when touching
+  geolocation, FIT parsing, or the map (no automated WebGL coverage): sign in on
+  `/login`, accept geolocation, upload a FIT file on `/upload`, verify it
+  appears in `/history` and the dashboard, open `/activity/:id`.
 - Document manual test notes in the PR description.
 
 ## Commit & Pull Request Guidelines
