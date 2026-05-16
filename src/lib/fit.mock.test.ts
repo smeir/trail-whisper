@@ -4,13 +4,14 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 // transformation/branching logic in parseFitFile (sport fallback, point
 // filtering, timestamp fallbacks, error propagation) deterministically.
 const holder = vi.hoisted(() => ({
-  error: null as Error | null,
+  error: undefined as string | undefined,
   data: {} as Record<string, unknown>,
 }))
 
+// fit-file-parser v3 callback signature: (error: string | undefined, data)
 vi.mock('fit-file-parser', () => ({
   default: class {
-    parse(_buffer: ArrayBuffer, cb: (err: Error | null, data: unknown) => void) {
+    parse(_buffer: ArrayBuffer, cb: (err: string | undefined, data: unknown) => void) {
       cb(holder.error, holder.data)
     }
   },
@@ -18,20 +19,20 @@ vi.mock('fit-file-parser', () => ({
 
 const { parseFitFile } = await import('./fit')
 
-function fileWith(data: Record<string, unknown>, error: Error | null = null) {
+function fileWith(data: Record<string, unknown>, error?: string) {
   holder.data = data
   holder.error = error
-  return new File([new Uint8Array([1, 2, 3])], 'mock.fit')
+  return new File([new Uint8Array([1, 2, 3]) as BlobPart], 'mock.fit')
 }
 
 afterEach(() => {
-  holder.error = null
+  holder.error = undefined
   holder.data = {}
 })
 
 describe('parseFitFile (logic, mocked parser)', () => {
   it('rejects when the parser reports an error', async () => {
-    const file = fileWith({}, new Error('corrupt'))
+    const file = fileWith({}, 'corrupt')
     await expect(parseFitFile(file)).rejects.toThrow('corrupt')
   })
 
