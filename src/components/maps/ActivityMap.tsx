@@ -76,7 +76,7 @@ export function ActivityMap({
       style: MAP_STYLE_URL,
       center: [fallback.lon, fallback.lat],
       zoom,
-      attributionControl: true,
+      attributionControl: {},
     })
 
     map.addControl(new NavigationControl({ showCompass: false }), 'top-right')

@@ -9,3 +9,10 @@ vite.config.ts.timestamp-*
 .vscode
 *.local
 /rest/
+
+# test artifacts
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+coverage

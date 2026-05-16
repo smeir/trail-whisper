@@ -76,10 +76,23 @@ Run it once per project. If you make schema updates, re-run the script or create
 | `npm run dev`    | Start Vite with hot module reload     |
 | `npm run build`  | Production build                      |
 | `npm run preview`| Preview the production bundle         |
+| `npm run lint`   | ESLint (flat config)                  |
+| `npm run typecheck` | Type-check with `tsc --noEmit`     |
+| `npm test`       | Vitest unit/component suite           |
+| `npm run test:e2e` | Playwright smoke suite              |
 
 ## Testing & QA
 
-Automated tests are not yet configured. Run through the main flows manually:
+Automated coverage:
+
+- **Vitest + Testing Library** — unit tests for geospatial/format/FIT logic,
+  component smoke tests, and an integration test that parses a generated FIT
+  binary through the real `fit-file-parser`.
+- **Playwright** — offline smoke flow (auth redirect, login/sign-up UI).
+
+Run `npm run lint && npm run typecheck && npm test && npm run test:e2e`.
+
+Still verify these flows manually (no automated WebGL/Supabase coverage):
 
 1. Create an account or sign in on `/login` with email + password and ensure redirect to `/app`.
 2. Accept geolocation permissions and confirm the 400 m check works once data exists.

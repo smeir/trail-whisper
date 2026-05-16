@@ -29,9 +29,11 @@ const parserOptions = {
 
 const parser = new FitParser(parserOptions)
 
-function normalizeSport(rawSport?: string): SportType {
-  if (!rawSport) return 'other'
-  const lower = rawSport.toLowerCase()
+function normalizeSport(rawSport?: unknown): SportType {
+  if (rawSport == null) return 'other'
+  // fit-file-parser v3 may surface unknown sports as a numeric enum; coerce
+  // defensively so a non-string value can never throw.
+  const lower = String(rawSport).toLowerCase()
   return sportMap[lower] ?? 'other'
 }
 
@@ -44,14 +46,14 @@ export async function parseFitFile(file: File): Promise<ParsedActivity> {
   const buffer = await file.arrayBuffer()
 
   return new Promise((resolve, reject) => {
-    parser.parse(buffer, (error: Error | null, data: any) => {
+    parser.parse(buffer, (error, data) => {
       if (error) {
-        reject(error)
+        reject(new Error(error))
         return
       }
 
-      const records: Array<Record<string, any>> = data?.records ?? []
-      const sessions: Array<Record<string, any>> = data?.sessions ?? []
+      const records: Array<Record<string, any>> = (data?.records as Array<Record<string, any>>) ?? []
+      const sessions: Array<Record<string, any>> = (data?.sessions as Array<Record<string, any>>) ?? []
       const points = records
         .filter((record) => typeof record.position_lat === 'number' && typeof record.position_long === 'number')
         .map((record) => ({ lat: record.position_lat, lon: record.position_long }))
@@ -73,7 +75,7 @@ export async function parseFitFile(file: File): Promise<ParsedActivity> {
 
       resolve({
         name: file.name,
-        sport: normalizeSport(session.sport ?? data?.sport),
+        sport: normalizeSport(session.sport ?? data?.sports?.[0]?.sport),
         startedAt: new Date(startedAt).toISOString(),
         endedAt: new Date(endedAt).toISOString(),
         totalDistance,

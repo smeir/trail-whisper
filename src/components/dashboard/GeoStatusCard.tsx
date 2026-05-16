@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { BadgeCheckIcon, BanIcon, Building2Icon, HomeIcon, MapPinIcon, NavigationIcon, RefreshCwIcon } from 'lucide-react'
+import { BadgeCheckIcon, BanIcon, Building2Icon, HomeIcon, MapPinIcon, RefreshCwIcon } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'

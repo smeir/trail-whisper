@@ -10,7 +10,7 @@ export function formatDistanceMeters(distance: number) {
 export function formatDateTime(value: string) {
   try {
     return format(parseISO(value), 'PP HH:mm')
-  } catch (error) {
+  } catch {
     return value
   }
 }
@@ -18,7 +18,7 @@ export function formatDateTime(value: string) {
 export function formatRelative(value: string) {
   try {
     return formatDistanceToNowStrict(parseISO(value), { addSuffix: true })
-  } catch (error) {
+  } catch {
     return value
   }
 }
