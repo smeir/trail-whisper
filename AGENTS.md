@@ -68,8 +68,12 @@ location.
   fixture (`src/test/fit-fixture.ts`) exercising the real `fit-file-parser`.
 - Use `renderWithProviders` from `src/test/render.tsx` for components that need
   the router or a query client rather than assembling the stack per spec.
-- Playwright smoke suite in `e2e/` runs offline (Supabase env stubbed; with no
-  session the app redirects to `/login`).
+- Playwright suite in `e2e/` runs offline (Supabase env stubbed). `smoke.spec.ts`
+  covers the signed-out redirect; `proximity.spec.ts` seeds a session into
+  `localStorage` under `sb-test-auth-token` and intercepts `/rest/v1/**`, so
+  signed-in flows are testable without a real backend. Assert on which endpoint
+  the app called, not just on rendered rows — that is what catches a silent
+  regression back to client-side filtering.
 - Run `npm run lint`, `npm run typecheck`, `npm test`, and `npm run test:e2e`
   before pushing; all must be green.
 - Still manually smoke-test map/upload flows via `npm run preview` when touching
