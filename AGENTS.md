@@ -90,7 +90,7 @@ location.
   user-facing or deployment impact.
 
 ## Deployment Notes
-- `.github/workflows/deploy.yml` builds on every push to `main` (Node 20) and
+- `.github/workflows/deploy.yml` builds on every push to `main` (Node 24) and
   deploys to GitHub Pages. `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`
   must be configured as GitHub Actions secrets.
 - Use topic branches for work-in-progress to avoid unintended deployments.
