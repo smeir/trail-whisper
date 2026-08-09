@@ -1,4 +1,31 @@
-import type { GeoLineString } from '@/lib/types'
+import type { Coordinates, GeoLineString } from '@/lib/types'
+
+/** ~11 m at the equator. Finer than a GPS fix is worth caching separately. */
+const QUANTISATION = 1e4
+
+/**
+ * Guard for query `enabled` flags. A truthiness test rejects a legitimate 0,
+ * which silently disables every location query on the equator and the prime
+ * meridian (and for a manually entered "0, 8.5").
+ */
+export function hasCoordinates(position?: Coordinates | null): position is Coordinates {
+  return position != null && Number.isFinite(position.lat) && Number.isFinite(position.lon)
+}
+
+/**
+ * Snap a position to a fixed grid so a drifting fix keeps hitting the same cache
+ * entry. Callers must send the quantised value to the server too — keying on a
+ * rounded point while querying the raw one leaves cache entries that no longer
+ * describe the request that filled them.
+ */
+export function quantiseCoordinates(position?: Coordinates | null): Coordinates | null {
+  if (!hasCoordinates(position)) return null
+
+  return {
+    lat: Math.round(position.lat * QUANTISATION) / QUANTISATION,
+    lon: Math.round(position.lon * QUANTISATION) / QUANTISATION,
+  }
+}
 
 function parseLineString(input: string) {
   const trimmed = input.trim()
@@ -86,45 +113,8 @@ function parseWkbLineString(hex: string) {
   return coordinates
 }
 
-export function findNearestPointOnTrack(
-  track: Array<{ lat: number; lon: number }>,
-  target: { lat: number; lon: number },
-  maxDistance?: number,
-) {
-  let nearestPoint: { lat: number; lon: number } | undefined
-  let nearestDistance = Infinity
-
-  for (const point of track) {
-    if (!Number.isFinite(point.lat) || !Number.isFinite(point.lon)) continue
-    const distance = haversineDistance(point, target)
-    if (distance < nearestDistance) {
-      nearestDistance = distance
-      nearestPoint = point
-    }
-    if (typeof maxDistance === 'number' && nearestDistance <= maxDistance) {
-      return { point: nearestPoint, distance: nearestDistance }
-    }
-  }
-
-  if (!nearestPoint) return undefined
-
-  return { point: nearestPoint, distance: nearestDistance }
-}
-
-export function haversineDistance(a: { lat: number; lon: number }, b: { lat: number; lon: number }) {
-  const R = 6371000
-  const toRad = (value: number) => (value * Math.PI) / 180
-
-  const dLat = toRad(b.lat - a.lat)
-  const dLon = toRad(b.lon - a.lon)
-  const lat1 = toRad(a.lat)
-  const lat2 = toRad(b.lat)
-
-  const sinDLat = Math.sin(dLat / 2)
-  const sinDLon = Math.sin(dLon / 2)
-
-  const h = sinDLat * sinDLat + Math.cos(lat1) * Math.cos(lat2) * sinDLon * sinDLon
-  const c = 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h))
-
-  return R * c
-}
+// findNearestPointOnTrack and haversineDistance lived here to filter by proximity
+// in the browser. find_activities_near does that in Postgres now, measuring against
+// the interpolated line rather than only the recorded vertices, so both this app's
+// "nearby" answers come from one implementation. See git history if the vertex-wise
+// helpers are ever needed again.

@@ -2,9 +2,10 @@ import { useMemo } from 'react'
 import { useParams } from 'react-router-dom'
 import { DownloadIcon, MapIcon } from 'lucide-react'
 
-import { ActivityMap } from '@/components/maps/ActivityMap'
+import { ActivityMap, type HighlightPoint } from '@/components/maps/ActivityMap'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { EmptyState } from '@/components/ui/empty-state'
 import { useActivityDetail } from '@/hooks/useActivityDetail'
 import { useGeolocation } from '@/hooks/useGeolocation'
 import { geoLineToLatLngs } from '@/utils/geo'
@@ -23,9 +24,9 @@ export default function ActivityDetail() {
     )
     const startPoint = trackPoints[0]
     const endPoint = trackPoints[trackPoints.length - 1]
-    const highlightPoints = useMemo(() => {
+    const highlightPoints = useMemo<HighlightPoint[]>(() => {
         if (!activity) return []
-        const markers: Array<{ id: string; point: { lat: number; lon: number }; label?: string; color?: string }> = []
+        const markers: HighlightPoint[] = []
         if (startPoint) {
             markers.push({ id: `${activity.id}-start`, point: startPoint, label: 'Start', color: '#16a34a' })
         }
@@ -34,6 +35,12 @@ export default function ActivityDetail() {
         }
         return markers
     }, [activity, startPoint, endPoint])
+
+    // Stable identity keeps ActivityMap from re-seating the marker on every render.
+    const currentLocation = useMemo(
+        () => (currentPosition ? { lat: currentPosition.lat, lon: currentPosition.lon } : undefined),
+        [currentPosition?.lat, currentPosition?.lon],
+    )
 
     const handleDownload = () => {
         if (!activity) return
@@ -72,11 +79,7 @@ export default function ActivityDetail() {
     }
 
     if (!activity) {
-        return (
-            <div className="rounded-3xl border border-dashed border-slate-200 bg-slate-50 p-12 text-center text-slate-500">
-                Activity not found.
-            </div>
-        )
+        return <EmptyState>Activity not found.</EmptyState>
     }
 
     return (
@@ -91,7 +94,7 @@ export default function ActivityDetail() {
                 track={trackPoints}
                 center={focusPoint}
                 highlights={highlightPoints}
-                currentLocation={currentPosition ? { lat: currentPosition.lat, lon: currentPosition.lon } : undefined}
+                currentLocation={currentLocation}
                 zoom={13}
                 height={560}
                 className="w-full"

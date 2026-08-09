@@ -1,7 +1,10 @@
-import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
+import { Suspense, useEffect } from 'react'
+import { Link, NavLink, Outlet } from 'react-router-dom'
 import {  HistoryIcon, MapPinIcon, UploadCloudIcon, UserCircleIcon, SignpostBig} from 'lucide-react'
 
+import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
+import { prefetchRoutes } from '@/routes/lazy'
 
 const navItems = [
     {to: '/app', label: 'Dashboard', icon: MapPinIcon},
@@ -11,7 +14,11 @@ const navItems = [
 ]
 
 export function AppLayout() {
-  const location = useLocation()
+  // The shell is up, so the remaining route chunks can download in the background
+  // rather than on the click that needs them.
+  useEffect(() => {
+    prefetchRoutes()
+  }, [])
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -40,26 +47,29 @@ export function AppLayout() {
         </div>
       </header>
       <main className="mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-6xl flex-1 flex-col gap-6 px-4 py-6">
-        <Outlet />
+        {/* Inside the shell, so a suspending route swaps the content instead of
+            blanking the header and the bottom nav. */}
+        <Suspense fallback={<Skeleton className="h-64 w-full" />}>
+          <Outlet />
+        </Suspense>
       </main>
       <nav className="sticky bottom-0 z-40 border-t border-slate-200 bg-white px-4 py-3 md:hidden">
         <div className="grid grid-cols-4 gap-2 text-xs">
-          {navItems.map((item) => {
-            const isActive = location.pathname.startsWith(item.to)
-            return (
-              <Link
-                key={item.to}
-                to={item.to}
-                className={cn(
+          {navItems.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              className={({ isActive }) =>
+                cn(
                   'flex flex-col items-center gap-1 rounded-2xl px-2 py-2 text-xs font-medium transition',
                   isActive ? 'bg-brand-100 text-brand-700' : 'text-slate-500 hover:text-slate-900',
-                )}
-              >
-                <item.icon className="h-5 w-5" />
-                {item.label}
-              </Link>
-            )
-          })}
+                )
+              }
+            >
+              <item.icon className="h-5 w-5" />
+              {item.label}
+            </NavLink>
+          ))}
         </div>
       </nav>
     </div>

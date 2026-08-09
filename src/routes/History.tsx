@@ -7,6 +7,8 @@ import { toast } from 'sonner'
 
 import { ManualLocationControls } from '@/components/location'
 import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { EmptyState } from '@/components/ui/empty-state'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
@@ -14,9 +16,14 @@ import { useActivities } from '@/hooks/useActivities'
 import { useGeolocation } from '@/hooks/useGeolocation'
 import type { SportType } from '@/lib/fit'
 import { Skeleton } from '@/components/ui/skeleton'
+import { errorMessage } from '@/lib/errors'
+import { invalidateActivityData } from '@/lib/queryKeys'
 import { supabase } from '@/lib/supabase'
-import { formatDateTime, formatDistanceMeters, formatRelative } from '@/utils/format'
+import type { DevicePosition, GeoStatus } from '@/lib/types'
+import { formatCoordinates, formatDateTime, formatDistanceMeters, formatRelative } from '@/utils/format'
 import { useAuth } from '@/providers/AuthProvider'
+
+const NEARBY_RADIUS_M = 2000
 
 const sportOptions: Array<{ label: string; value: SportType | 'all' }> = [
   { label: 'All sports', value: 'all' },
@@ -27,6 +34,20 @@ const sportOptions: Array<{ label: string; value: SportType | 'all' }> = [
   { label: 'Swimming', value: 'swimming' },
   { label: 'Other', value: 'other' },
 ]
+
+function nearbyHint(position: DevicePosition | null, status: GeoStatus) {
+  if (position) {
+    const where = position.source === 'manual' ? 'your manual location' : 'your current location'
+    return `Within ${formatDistanceMeters(NEARBY_RADIUS_M)} of ${where} (${formatCoordinates(position, 3)})`
+  }
+  if (status === 'denied') {
+    return 'Location access denied. Update your browser permissions or enter coordinates manually.'
+  }
+  if (status === 'unsupported') {
+    return 'Geolocation unsupported. Enter coordinates manually to filter by proximity.'
+  }
+  return 'Waiting for location…'
+}
 
 export default function History() {
   const [sport, setSport] = useState<SportType | 'all'>('all')
@@ -51,58 +72,40 @@ export default function History() {
     if (sport !== 'all') filter.sport = sport
     if (from) filter.from = new Date(from).toISOString()
     if (to) filter.to = new Date(to).toISOString()
-    if (useNearby && position) filter.near = { lat: position.lat, lon: position.lon, radius: 2000 }
+    if (useNearby && position) {
+      filter.near = { lat: position.lat, lon: position.lon, radius: NEARBY_RADIUS_M }
+    }
     return filter
   }, [from, position, sport, to, useNearby])
 
-  const { data: activities, isLoading } = useActivities(filters)
+  const { data: activities, isLoading, isError } = useActivities(filters)
   const navigate = useNavigate()
 
-  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
-
-  const deleteActivityMutation = useMutation({
-    mutationFn: async (id: string) => {
+  // One mutation for both cases: an id deletes that workout, no id deletes all of them.
+  // The user_id filter stays alongside RLS — belt and braces on a destructive call.
+  const deleteMutation = useMutation({
+    mutationFn: async (id?: string) => {
       if (!user) {
         throw new Error('You must be signed in to delete workouts.')
       }
-      const { error } = await supabase.from('activities').delete().eq('id', id).eq('user_id', user.id)
+      const query = supabase.from('activities').delete().eq('user_id', user.id)
+      const { error } = await (id ? query.eq('id', id) : query)
       if (error) throw error
     },
-    onMutate: (id: string) => {
-      setPendingDeleteId(id)
-    },
-    onSuccess: () => {
-      toast.success('Workout deleted')
-      queryClient.invalidateQueries({ queryKey: ['activities'] })
-      queryClient.invalidateQueries({ queryKey: ['visits-near'] })
+    onSuccess: (_data, id) => {
+      toast.success(id ? 'Workout deleted' : 'All workouts deleted')
+      // Returned, not fired-and-forgotten: react-query awaits onSuccess before
+      // clearing isPending, so the table stops offering rows that are already gone.
+      return invalidateActivityData(queryClient)
     },
     onError: (error: unknown) => {
       console.error(error)
-      toast.error(error instanceof Error ? error.message : 'Could not delete workout')
-    },
-    onSettled: () => {
-      setPendingDeleteId(null)
+      toast.error(errorMessage(error, 'Could not delete workouts'))
     },
   })
 
-  const deleteAllMutation = useMutation({
-    mutationFn: async () => {
-      if (!user) {
-        throw new Error('You must be signed in to delete workouts.')
-      }
-      const { error } = await supabase.from('activities').delete().eq('user_id', user.id)
-      if (error) throw error
-    },
-    onSuccess: () => {
-      toast.success('All workouts deleted')
-      queryClient.invalidateQueries({ queryKey: ['activities'] })
-      queryClient.invalidateQueries({ queryKey: ['visits-near'] })
-    },
-    onError: (error: unknown) => {
-      console.error(error)
-      toast.error(error instanceof Error ? error.message : 'Could not delete workouts')
-    },
-  })
+  const isDeleting = deleteMutation.isPending
+  const isDeletingAll = isDeleting && !deleteMutation.variables
 
   const handleToggleNearby = () => {
     if (!useNearby) {
@@ -111,18 +114,13 @@ export default function History() {
     setUseNearby((prev) => !prev)
   }
 
-  const handleDeleteActivity = (id: string) => {
-    if (deleteActivityMutation.isPending || deleteAllMutation.isPending) return
-    const confirmed = window.confirm('Delete this workout? This action cannot be undone.')
-    if (!confirmed) return
-    deleteActivityMutation.mutate(id)
-  }
-
-  const handleDeleteAll = () => {
-    if (!activities?.length || deleteAllMutation.isPending || deleteActivityMutation.isPending) return
-    const confirmed = window.confirm('Delete all workouts? This will remove every workout permanently.')
-    if (!confirmed) return
-    deleteAllMutation.mutate()
+  const handleDelete = (id?: string) => {
+    if (isDeleting) return
+    const message = id
+      ? 'Delete this workout? This action cannot be undone.'
+      : 'Delete all workouts? This will remove every workout permanently.'
+    if (!window.confirm(message)) return
+    deleteMutation.mutate(id)
   }
 
   return (
@@ -131,30 +129,34 @@ export default function History() {
         <h1 className="text-2xl font-semibold text-slate-900">History</h1>
         <p className="text-sm text-slate-600">Browse every activity you have uploaded. Filter by sport, time or proximity.</p>
       </div>
-      <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <Card>
         <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
           <FilterIcon className="h-4 w-4 text-brand-500" /> Filters
         </div>
         <div className="mt-4 grid gap-4 md:grid-cols-4">
-          <label className="flex flex-col gap-2 text-sm text-slate-600">
-            <span>Sport</span>
-            <Select value={sport} onChange={(event) => setSport(event.target.value as SportType | 'all')}>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="filter-sport">Sport</Label>
+            <Select
+              id="filter-sport"
+              value={sport}
+              onChange={(event) => setSport(event.target.value as SportType | 'all')}
+            >
               {sportOptions.map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}
                 </option>
               ))}
             </Select>
-          </label>
-          <label className="flex flex-col gap-2 text-sm text-slate-600">
-            <span>From</span>
-            <Input type="date" value={from} onChange={(event) => setFrom(event.target.value)} />
-          </label>
-          <label className="flex flex-col gap-2 text-sm text-slate-600">
-            <span>To</span>
-            <Input type="date" value={to} onChange={(event) => setTo(event.target.value)} />
-          </label>
-          <div className="flex flex-col gap-2 text-sm text-slate-600">
+          </div>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="filter-from">From</Label>
+            <Input id="filter-from" type="date" value={from} onChange={(event) => setFrom(event.target.value)} />
+          </div>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="filter-to">To</Label>
+            <Input id="filter-to" type="date" value={to} onChange={(event) => setTo(event.target.value)} />
+          </div>
+          <div className="flex flex-col gap-2">
             <Label>Proximity</Label>
             <Button
               type="button"
@@ -166,19 +168,7 @@ export default function History() {
               <MapPinIcon className="h-4 w-4" />
               {useNearby ? 'Filtering near me' : 'Filter near me'}
             </Button>
-            {useNearby ? (
-              <p className="text-xs text-slate-500">
-                {position
-                  ? position.source === 'manual'
-                    ? `Within 2 km of your manual location (${position.lat.toFixed(3)}, ${position.lon.toFixed(3)})`
-                    : `Within 2 km of your current location (${position.lat.toFixed(3)}, ${position.lon.toFixed(3)})`
-                  : status === 'denied'
-                  ? 'Location access denied. Update your browser permissions or enter coordinates manually.'
-                  : status === 'unsupported'
-                  ? 'Geolocation unsupported. Enter coordinates manually to filter by proximity.'
-                  : 'Waiting for location…'}
-              </p>
-            ) : null}
+            {useNearby ? <p className="text-xs text-slate-500">{nearbyHint(position, status)}</p> : null}
             {useNearby || mode === 'manual' ? (
               <ManualLocationControls
                 position={position}
@@ -194,13 +184,19 @@ export default function History() {
             ) : null}
           </div>
         </div>
-      </div>
+      </Card>
 
       {isLoading ? (
         <div className="grid gap-4 md:grid-cols-2">
           <Skeleton className="h-64 w-full" />
           <Skeleton className="h-64 w-full" />
         </div>
+      ) : isError ? (
+        // Distinct from the empty state below: telling someone with 200 uploads
+        // that they have none would send them off adjusting filters for nothing.
+        <EmptyState className="border-rose-200 bg-rose-50 text-rose-600">
+          Could not load your workouts. Check your connection and try again.
+        </EmptyState>
       ) : activities && activities.length ? (
         <div className="flex flex-col gap-4">
           <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
@@ -216,10 +212,10 @@ export default function History() {
               variant="ghost"
               size="sm"
               className="self-start text-rose-600 hover:text-rose-700"
-              onClick={handleDeleteAll}
-              disabled={deleteAllMutation.isPending || deleteActivityMutation.isPending}
+              onClick={() => handleDelete()}
+              disabled={isDeleting}
             >
-              {deleteAllMutation.isPending ? (
+              {isDeletingAll ? (
                 <Loader2Icon className="h-4 w-4 animate-spin" />
               ) : (
                 <Trash2Icon className="h-4 w-4" />
@@ -227,7 +223,7 @@ export default function History() {
               Delete all
             </Button>
           </div>
-          <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+          <Card className="overflow-hidden p-0">
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-slate-200">
                 <thead className="bg-slate-50">
@@ -244,9 +240,10 @@ export default function History() {
                 </thead>
                 <tbody className="divide-y divide-slate-200 text-sm text-slate-700">
                   {activities.map((activity) => {
-                    const isDeleting = deleteActivityMutation.isPending && pendingDeleteId === activity.id
+                    const isDeletingRow = isDeleting && deleteMutation.variables === activity.id
+                    const distance = formatDistanceMeters(activity.total_distance_m)
                     const handleRowNavigate = () => {
-                      if (deleteAllMutation.isPending || deleteActivityMutation.isPending) return
+                      if (isDeleting) return
                       navigate(`/activity/${activity.id}`)
                     }
                     return (
@@ -268,7 +265,7 @@ export default function History() {
                           </span>
                         </td>
                         <td className="hidden whitespace-nowrap px-4 py-4 font-semibold sm:table-cell">
-                          {formatDistanceMeters(activity.total_distance_m)}
+                          {distance}
                         </td>
                         <td className="px-4 py-4 whitespace-normal sm:whitespace-nowrap">
                           <div className="flex items-center gap-2">
@@ -278,7 +275,7 @@ export default function History() {
                                 {formatDateTime(activity.started_at)}
                               </span>
                               <span className="text-sm font-semibold text-slate-900 sm:hidden">
-                                {formatDistanceMeters(activity.total_distance_m)}
+                                {distance}
                               </span>
                             </div>
                           </div>
@@ -297,11 +294,11 @@ export default function History() {
                               className="text-rose-600 hover:text-rose-700"
                               onClick={(event) => {
                                 event.stopPropagation()
-                                handleDeleteActivity(activity.id)
+                                handleDelete(activity.id)
                               }}
-                              disabled={isDeleting || deleteAllMutation.isPending}
+                              disabled={isDeleting}
                             >
-                              {isDeleting ? (
+                              {isDeletingRow ? (
                                 <Loader2Icon className="h-4 w-4 animate-spin" />
                               ) : (
                                 <Trash2Icon className="h-4 w-4" />
@@ -316,12 +313,10 @@ export default function History() {
                 </tbody>
               </table>
             </div>
-          </div>
+          </Card>
         </div>
       ) : (
-        <div className="rounded-3xl border border-dashed border-slate-200 bg-slate-50 p-12 text-center text-slate-500">
-          No activities found for this filter combination.
-        </div>
+        <EmptyState>No activities found for this filter combination.</EmptyState>
       )}
     </div>
   )

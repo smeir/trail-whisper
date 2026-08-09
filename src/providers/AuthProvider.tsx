@@ -1,4 +1,5 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import type { Session, User } from '@supabase/supabase-js'
 
 import { supabase } from '@/lib/supabase'
@@ -14,8 +15,24 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
-  const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
+  const queryClient = useQueryClient()
+  const previousUserId = useRef<string | null>(null)
+
+  const user = session?.user ?? null
+
+  // Query keys are not scoped by user and the client outlives a sign-out, so
+  // without this the next account signed in on this tab renders the previous
+  // one's cached activities until they go stale. RLS keeps the data safe on the
+  // server; this is what keeps it off the screen.
+  useEffect(() => {
+    const nextUserId = user?.id ?? null
+    if (previousUserId.current === nextUserId) return
+
+    const hadUser = previousUserId.current !== null
+    previousUserId.current = nextUserId
+    if (hadUser) queryClient.clear()
+  }, [queryClient, user?.id])
 
   useEffect(() => {
     let mounted = true
@@ -23,7 +40,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     supabase.auth.getSession().then(({ data }) => {
       if (!mounted) return
       setSession(data.session ?? null)
-      setUser(data.session?.user ?? null)
       setLoading(false)
     })
 
@@ -31,7 +47,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, nextSession) => {
       setSession(nextSession)
-      setUser(nextSession?.user ?? null)
       setLoading(false)
     })
 
@@ -55,7 +70,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     } finally {
       setSession(null)
-      setUser(null)
       setLoading(false)
     }
   }, [])

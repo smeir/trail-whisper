@@ -2,9 +2,8 @@ import { render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-// Stub leaf routes so this exercises only the routing + auth-gate logic
-// (ProtectedRoute / PublicOnlyRoute) — the part most affected by a
-// react-router-dom major upgrade.
+// Stub leaf routes so this exercises only the routing + AuthGate logic — the
+// part most affected by a react-router-dom major upgrade.
 vi.mock('./routes/Login', () => ({ default: () => <div>Login Page</div> }))
 vi.mock('./routes/Dashboard', () => ({ default: () => <div>Dashboard Page</div> }))
 vi.mock('./routes/Upload', () => ({ default: () => <div>Upload Page</div> }))
@@ -54,23 +53,24 @@ describe('App routing & auth gates', () => {
     expect(screen.queryByText('App Layout')).not.toBeInTheDocument()
   })
 
-  it('renders the protected layout for an authenticated user', () => {
+  // The protected routes are code-split, so they resolve a tick after render.
+  it('renders the protected layout for an authenticated user', async () => {
     useAuthMock.mockReturnValue({ user: { id: 'u1' }, loading: false })
     renderAt('/app')
-    expect(screen.getByText('App Layout')).toBeInTheDocument()
+    expect(await screen.findByText('App Layout')).toBeInTheDocument()
     expect(screen.getByText('Dashboard Page')).toBeInTheDocument()
   })
 
-  it('keeps authenticated users away from the public-only login route', () => {
+  it('keeps authenticated users away from the public-only login route', async () => {
     useAuthMock.mockReturnValue({ user: { id: 'u1' }, loading: false })
     renderAt('/login')
-    expect(screen.getByText('App Layout')).toBeInTheDocument()
+    expect(await screen.findByText('App Layout')).toBeInTheDocument()
     expect(screen.queryByText('Login Page')).not.toBeInTheDocument()
   })
 
-  it('redirects unknown paths to the app', () => {
+  it('redirects unknown paths to the app', async () => {
     useAuthMock.mockReturnValue({ user: { id: 'u1' }, loading: false })
     renderAt('/does-not-exist')
-    expect(screen.getByText('Dashboard Page')).toBeInTheDocument()
+    expect(await screen.findByText('Dashboard Page')).toBeInTheDocument()
   })
 })

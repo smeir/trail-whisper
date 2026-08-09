@@ -4,7 +4,7 @@ test.describe('Trail Whisper smoke', () => {
   test('unauthenticated visitors land on the login screen', async ({ page }) => {
     await page.goto('./')
 
-    // HashRouter: / -> /app -> ProtectedRoute -> redirect to /login
+    // HashRouter: / -> /app -> AuthGate require="user" -> redirect to /login
     await expect(page).toHaveURL(/#\/login$/)
     await expect(
       page.getByRole('heading', { name: 'Trail Whisper' }),

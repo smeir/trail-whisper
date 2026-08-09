@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { findNearestPointOnTrack, geoLineToLatLngs, haversineDistance } from './geo'
+import { geoLineToLatLngs, hasCoordinates, quantiseCoordinates } from './geo'
 
 /** Build a little-endian WKB LineString hex string (X=lon, Y=lat). */
 function wkbLineStringHex(points: Array<[number, number]>) {
@@ -21,23 +21,6 @@ function wkbLineStringHex(points: Array<[number, number]>) {
   }
   return [...new Uint8Array(buffer)].map((b) => b.toString(16).padStart(2, '0')).join('')
 }
-
-describe('haversineDistance', () => {
-  it('is zero for identical points', () => {
-    expect(haversineDistance({ lat: 47, lon: 8 }, { lat: 47, lon: 8 })).toBe(0)
-  })
-
-  it('matches the known ~111 km per degree of longitude at the equator', () => {
-    const d = haversineDistance({ lat: 0, lon: 0 }, { lat: 0, lon: 1 })
-    expect(d).toBeCloseTo(111194.93, 0)
-  })
-
-  it('is symmetric', () => {
-    const a = { lat: 47.0, lon: 8.0 }
-    const b = { lat: 47.5, lon: 8.5 }
-    expect(haversineDistance(a, b)).toBeCloseTo(haversineDistance(b, a), 6)
-  })
-})
 
 describe('geoLineToLatLngs', () => {
   it('returns [] for nullish input', () => {
@@ -96,34 +79,49 @@ describe('geoLineToLatLngs', () => {
   })
 })
 
-describe('findNearestPointOnTrack', () => {
-  const track = [
-    { lat: 47.0, lon: 8.0 },
-    { lat: 47.5, lon: 8.5 },
-    { lat: 48.0, lon: 9.0 },
-  ]
-
-  it('returns undefined for an empty track', () => {
-    expect(findNearestPointOnTrack([], { lat: 47, lon: 8 })).toBeUndefined()
+describe('hasCoordinates', () => {
+  it('accepts a coordinate of exactly zero', () => {
+    // A truthiness check rejects these, which silently disables every location
+    // query on the prime meridian and the equator.
+    expect(hasCoordinates({ lat: 51.4779, lon: 0 })).toBe(true)
+    expect(hasCoordinates({ lat: 0, lon: 8.54 })).toBe(true)
+    expect(hasCoordinates({ lat: 0, lon: 0 })).toBe(true)
   })
 
-  it('finds the closest point and its distance', () => {
-    const result = findNearestPointOnTrack(track, { lat: 47.49, lon: 8.49 })
-    expect(result?.point).toEqual({ lat: 47.5, lon: 8.5 })
-    expect(result?.distance).toBeGreaterThan(0)
+  it('accepts an ordinary fix', () => {
+    expect(hasCoordinates({ lat: 47.37, lon: 8.54 })).toBe(true)
   })
 
-  it('short-circuits once a point within maxDistance is found', () => {
-    const result = findNearestPointOnTrack(track, { lat: 47.0, lon: 8.0 }, 10)
-    expect(result?.point).toEqual({ lat: 47.0, lon: 8.0 })
-    expect(result?.distance).toBe(0)
+  it('rejects missing or non-finite coordinates', () => {
+    expect(hasCoordinates(null)).toBe(false)
+    expect(hasCoordinates(undefined)).toBe(false)
+    expect(hasCoordinates({ lat: Number.NaN, lon: 8.54 })).toBe(false)
+    expect(hasCoordinates({ lat: 47.37, lon: Number.POSITIVE_INFINITY })).toBe(false)
+  })
+})
+
+describe('quantiseCoordinates', () => {
+  it('snaps both components to the same grid', () => {
+    expect(quantiseCoordinates({ lat: 47.3768866, lon: 8.5417 })).toEqual({ lat: 47.3769, lon: 8.5417 })
   })
 
-  it('ignores points with non-finite coordinates', () => {
-    const result = findNearestPointOnTrack(
-      [{ lat: Number.NaN, lon: Number.NaN }, { lat: 47.0, lon: 8.0 }],
-      { lat: 47.0, lon: 8.0 },
+  it('keeps drifting fixes on one cache key', () => {
+    // Two fixes a few metres apart must land on the same key, or every GPS update
+    // costs a round trip.
+    expect(quantiseCoordinates({ lat: 47.37688, lon: 8.54171 })).toEqual(
+      quantiseCoordinates({ lat: 47.37692, lon: 8.54174 }),
     )
-    expect(result?.point).toEqual({ lat: 47.0, lon: 8.0 })
+  })
+
+  it('preserves a zero component', () => {
+    expect(quantiseCoordinates({ lat: 51.4779, lon: 0 })).toEqual({ lat: 51.4779, lon: 0 })
+    expect(quantiseCoordinates({ lat: 0, lon: 0 })).toEqual({ lat: 0, lon: 0 })
+  })
+
+  it('returns null for missing or non-finite input', () => {
+    expect(quantiseCoordinates(null)).toBeNull()
+    expect(quantiseCoordinates(undefined)).toBeNull()
+    expect(quantiseCoordinates({ lat: Number.NaN, lon: 8.54 })).toBeNull()
+    expect(quantiseCoordinates({ lat: 47.37, lon: Number.POSITIVE_INFINITY })).toBeNull()
   })
 })
