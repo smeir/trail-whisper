@@ -1,5 +1,4 @@
 import { useRef, useState } from 'react'
-import { Navigate } from 'react-router-dom'
 import { LogInIcon, UserPlusIcon } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -7,13 +6,11 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { useAuth } from '@/providers/AuthProvider'
 import { supabase } from '@/lib/supabase'
 
 type Mode = 'signIn' | 'signUp'
 
 export default function Login() {
-  const { user, loading } = useAuth()
   const [mode, setMode] = useState<Mode>('signIn')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -35,10 +32,6 @@ export default function Login() {
     } catch {
       // Ignore unsupported or blocked credential storage.
     }
-  }
-
-  if (user && !loading) {
-    return <Navigate to="/app" replace />
   }
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {

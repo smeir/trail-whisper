@@ -6,10 +6,13 @@ import { useQueryClient } from '@tanstack/react-query'
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { errorMessage } from '@/lib/errors'
 import { parseFitFile, pointsToLineString, type ParsedActivity } from '@/lib/fit'
+import { invalidateActivityData } from '@/lib/queryKeys'
 import { supabase } from '@/lib/supabase'
+import { cn } from '@/lib/utils'
 import { useAuth } from '@/providers/AuthProvider'
-import { formatDateTime, formatDistanceMeters } from '@/utils/format'
+import { formatCoordinates, formatDateTime, formatDistanceMeters } from '@/utils/format'
 
 interface QueuedActivity {
   id: string
@@ -71,44 +74,43 @@ export function FitDropzone() {
 
     setIsUploading(true)
 
-    for (const item of queue) {
-      if (item.status !== 'ready') continue
+    const ready = queue.filter((item) => item.status === 'ready')
+    const readyIds = new Set(ready.map((item) => item.id))
+    setQueue((prev) =>
+      prev.map((entry) => (readyIds.has(entry.id) ? { ...entry, status: 'uploading', error: undefined } : entry)),
+    )
 
-      setQueue((prev) =>
-        prev.map((entry) => (entry.id === item.id ? { ...entry, status: 'uploading', error: undefined } : entry)),
-      )
+    // The inserts are independent, so one round trip per file would just be idle waiting.
+    await Promise.all(
+      ready.map(async (item) => {
+        try {
+          const { parsed } = item
+          const { error } = await supabase.from('activities').insert({
+            user_id: user.id,
+            sport: parsed.sport,
+            started_at: parsed.startedAt,
+            ended_at: parsed.endedAt,
+            total_distance_m: parsed.totalDistance,
+            track_geom: pointsToLineString(parsed.points),
+          })
 
-      try {
-        const { parsed } = item
-        const { error } = await supabase.from('activities').insert({
-          user_id: user.id,
-          sport: parsed.sport,
-          started_at: parsed.startedAt,
-          ended_at: parsed.endedAt,
-          total_distance_m: parsed.totalDistance,
-          track_geom: pointsToLineString(parsed.points),
-        })
+          if (error) throw error
 
-        if (error) throw error
-
-        setQueue((prev) => prev.map((entry) => (entry.id === item.id ? { ...entry, status: 'done' } : entry)))
-        toast.success(`Uploaded ${item.fileName}`)
-      } catch (error: any) {
-        console.error(error)
-        setQueue((prev) =>
-          prev.map((entry) =>
-            entry.id === item.id
-              ? { ...entry, status: 'error', error: error.message ?? 'Upload failed' }
-              : entry,
-          ),
-        )
-        toast.error(`Failed to upload ${item.fileName}`)
-      }
-    }
+          setQueue((prev) => prev.map((entry) => (entry.id === item.id ? { ...entry, status: 'done' } : entry)))
+          toast.success(`Uploaded ${item.fileName}`)
+        } catch (error: unknown) {
+          console.error(error)
+          const message = errorMessage(error, 'Upload failed')
+          setQueue((prev) =>
+            prev.map((entry) => (entry.id === item.id ? { ...entry, status: 'error', error: message } : entry)),
+          )
+          toast.error(`Failed to upload ${item.fileName}`)
+        }
+      }),
+    )
 
     setIsUploading(false)
-    await queryClient.invalidateQueries({ queryKey: ['activities'] })
-    await queryClient.invalidateQueries({ queryKey: ['visits-near'] })
+    await invalidateActivityData(queryClient)
   }, [queue, queryClient, user])
 
   const hasItems = queue.length > 0
@@ -124,9 +126,10 @@ export function FitDropzone() {
       <CardContent className="flex flex-col gap-5">
         <div
           {...getRootProps({
-            className: `flex flex-col items-center justify-center gap-3 rounded-3xl border-2 border-dashed ${
-              isDragActive ? 'border-brand-400 bg-brand-50' : 'border-slate-300 bg-white'
-            } p-8 text-center transition`,
+            className: cn(
+              'flex flex-col items-center justify-center gap-3 rounded-3xl border-2 border-dashed p-8 text-center transition',
+              isDragActive ? 'border-brand-400 bg-brand-50' : 'border-slate-300 bg-white',
+            ),
           })}
         >
           <input {...getInputProps()} />
@@ -186,9 +189,7 @@ export function FitDropzone() {
                     <div className="rounded-xl bg-slate-100 p-2">
                       <p className="text-[11px] uppercase text-slate-500">Start point</p>
                       <p className="text-sm font-semibold text-slate-800">
-                        {item.parsed.points[0]
-                          ? `${item.parsed.points[0].lat.toFixed(4)}, ${item.parsed.points[0].lon.toFixed(4)}`
-                          : '—'}
+                        {item.parsed.points[0] ? formatCoordinates(item.parsed.points[0]) : '—'}
                       </p>
                     </div>
                   </div>

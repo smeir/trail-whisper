@@ -15,6 +15,11 @@ export interface Activity {
   created_at: string
 }
 
+/** Column lists for `activities` selects — keep in sync with the `Activity` shape. */
+export const ACTIVITY_COLUMNS = 'id, sport, started_at, ended_at, total_distance_m, created_at'
+export const ACTIVITY_COLUMNS_WITH_TRACK =
+  'id, sport, started_at, ended_at, total_distance_m, track_geom, created_at'
+
 export interface VisitNear {
   activity_id: string
   started_at: string
@@ -26,12 +31,18 @@ export interface VisitNear {
 
 export interface AggregatedVisitStats {
   totalVisits: number
-  totalDistance: number
-  recentVisits: VisitNear[]
-  bySport: Array<{ sport: SportType; count: number }>
+  /** Readonly so the shared empty-state singleton cannot be mutated by a consumer. */
+  recentVisits: readonly VisitNear[]
 }
 
 export interface Coordinates {
   lat: number
   lon: number
 }
+
+export type GeoSource = 'browser' | 'manual'
+export type GeoMode = 'auto' | 'manual'
+export type GeoStatus = 'idle' | 'prompt' | 'granted' | 'denied' | 'unsupported' | 'manual'
+
+/** Named `DevicePosition` rather than `GeolocationPosition` to avoid shadowing the DOM global. */
+export type DevicePosition = Coordinates & { accuracy: number; source: GeoSource }

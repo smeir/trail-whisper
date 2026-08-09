@@ -1,5 +1,4 @@
-import { render, screen } from '@testing-library/react'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 
 vi.mock('@/lib/supabase', () => ({ supabase: { from: vi.fn() } }))
@@ -8,14 +7,10 @@ vi.mock('@/providers/AuthProvider', () => ({
 }))
 
 import { FitDropzone } from './FitDropzone'
+import { renderWithProviders } from '@/test/render'
 
 function renderDropzone() {
-  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-  return render(
-    <QueryClientProvider client={client}>
-      <FitDropzone />
-    </QueryClientProvider>,
-  )
+  return renderWithProviders(<FitDropzone />)
 }
 
 describe('FitDropzone', () => {

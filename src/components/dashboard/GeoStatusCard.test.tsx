@@ -1,5 +1,4 @@
-import { render, screen } from '@testing-library/react'
-import { MemoryRouter } from 'react-router-dom'
+import { screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 
 vi.mock('@/hooks/useReverseGeocode', () => ({
@@ -12,28 +11,17 @@ vi.mock('@/hooks/useReverseGeocode', () => ({
 }))
 
 import { GeoStatusCard } from './GeoStatusCard'
+import { renderWithProviders } from '@/test/render'
 import type { AggregatedVisitStats, VisitNear } from '@/lib/types'
 
 const emptyStats: AggregatedVisitStats = {
   totalVisits: 0,
-  totalDistance: 0,
   recentVisits: [],
-  bySport: [],
 }
 
 function renderCard(props: Partial<Parameters<typeof GeoStatusCard>[0]> = {}) {
-  return render(
-    <MemoryRouter>
-      <GeoStatusCard
-        loading={false}
-        status="granted"
-        position={null}
-        stats={emptyStats}
-        visits={[]}
-        onRetry={vi.fn()}
-        {...props}
-      />
-    </MemoryRouter>,
+  return renderWithProviders(
+    <GeoStatusCard loading={false} status="granted" position={null} stats={emptyStats} onRetry={vi.fn()} {...props} />,
   )
 }
 
@@ -55,6 +43,13 @@ describe('GeoStatusCard', () => {
     expect(screen.getByText('Not active here yet')).toBeInTheDocument()
   })
 
+  it('reports a failed visit lookup instead of claiming there are no visits', () => {
+    renderCard({ status: 'granted', visitsFailed: true })
+    expect(screen.getByText('Could not check this location for past visits.')).toBeInTheDocument()
+    expect(screen.queryByText('Not active here yet')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /try again/i })).toBeInTheDocument()
+  })
+
   it('summarises past visits and lists recent ones', () => {
     const visits: VisitNear[] = [
       {
@@ -66,10 +61,7 @@ describe('GeoStatusCard', () => {
         distance_m: 42,
       },
     ]
-    renderCard({
-      stats: { ...emptyStats, totalVisits: 3 },
-      visits,
-    })
+    renderCard({ stats: { totalVisits: 3, recentVisits: visits } })
     expect(screen.getByText('3')).toBeInTheDocument()
     expect(screen.getByText('Recent visits')).toBeInTheDocument()
     expect(screen.getByText('42 m away')).toBeInTheDocument()

@@ -1,55 +1,38 @@
-import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 
 import { supabase } from '@/lib/supabase'
+import { queryKeys } from '@/lib/queryKeys'
 import type { AggregatedVisitStats, Coordinates, VisitNear } from '@/lib/types'
-import type { SportType } from '@/lib/fit'
+import { quantiseCoordinates } from '@/utils/geo'
 
-interface VisitsNearResult {
-  visits: VisitNear[]
-  stats: AggregatedVisitStats
-}
+const RECENT_VISIT_COUNT = 5
 
-function aggregateVisits(visits: VisitNear[]): AggregatedVisitStats {
-  const totalVisits = visits.length
-  const totalDistance = visits.reduce((sum, visit) => sum + (visit.total_distance_m ?? 0), 0)
-  const recentVisits = visits.slice(0, 5)
-
-  const counts = visits.reduce<Record<SportType, number>>((acc, visit) => {
-    acc[visit.sport] = (acc[visit.sport] ?? 0) + 1
-    return acc
-  }, {} as Record<SportType, number>)
-
-  const bySport = Object.entries(counts)
-    .map(([sport, count]) => ({ sport: sport as SportType, count }))
-    .sort((a, b) => b.count - a.count)
-
-  return { totalVisits, totalDistance, recentVisits, bySport }
-}
+// Handed straight to consumers as the empty state, so it is frozen: a shared
+// mutable array would let one caller's in-place sort corrupt every other's.
+const EMPTY_STATS: AggregatedVisitStats = Object.freeze({
+  totalVisits: 0,
+  recentVisits: Object.freeze([]),
+})
 
 export function useVisitsNear(position?: Coordinates | null, radius = 500) {
-  const query = useQuery<VisitsNearResult>({
-    queryKey: ['visits-near', position?.lat, position?.lon, radius],
+  // The quantised point keys the cache and is what gets queried, so nearby fixes
+  // share an entry and that entry always matches the centre it was fetched for.
+  const point = quantiseCoordinates(position)
+
+  const { data, isLoading, isError, refetch } = useQuery<AggregatedVisitStats>({
+    queryKey: [...queryKeys.visitsNear, point?.lat, point?.lon, radius],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('find_visits_near', {
-        lat: position?.lat,
-        lon: position?.lon,
+      const { data: rows, error: rpcError } = await supabase.rpc('find_visits_near', {
+        lat: point?.lat,
+        lon: point?.lon,
         radius_m: radius,
       })
-      if (error) throw error
-      const visits = (data ?? []) as VisitNear[]
-      return { visits, stats: aggregateVisits(visits) }
+      if (rpcError) throw rpcError
+      const visits = (rows ?? []) as VisitNear[]
+      return { totalVisits: visits.length, recentVisits: visits.slice(0, RECENT_VISIT_COUNT) }
     },
-    enabled: Boolean(position?.lat && position?.lon),
-    staleTime: 60_000,
+    enabled: point !== null,
   })
 
-  return useMemo(
-    () => ({
-      ...query,
-      visits: query.data?.visits ?? [],
-      stats: query.data?.stats ?? aggregateVisits([]),
-    }),
-    [query],
-  )
+  return { stats: data ?? EMPTY_STATS, isLoading, isError, refetch }
 }

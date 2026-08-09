@@ -2,14 +2,12 @@ import { useEffect, useMemo, useRef } from 'react'
 import maplibregl, { type GeoJSONSource, NavigationControl } from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 
+import type { Coordinates } from '@/lib/types'
 import { cn } from '@/lib/utils'
 
-interface MapPoint {
-  lat: number
-  lon: number
-}
+export type MapPoint = Coordinates
 
-interface HighlightPoint {
+export interface HighlightPoint {
   id: string
   point: MapPoint
   label?: string
@@ -146,12 +144,14 @@ export function ActivityMap({
 
     if (map.isStyleLoaded()) {
       ensureTrackLayer()
-    } else {
-      const onLoad = () => {
-        ensureTrackLayer()
-        map.off('load', onLoad)
-      }
-      map.on('load', onLoad)
+      return
+    }
+
+    // Without the cleanup, a handler registered after `load` already fired stays
+    // attached for the map's lifetime and pins the whole track array in memory.
+    map.once('load', ensureTrackLayer)
+    return () => {
+      map.off('load', ensureTrackLayer)
     }
   }, [track, zoom])
 

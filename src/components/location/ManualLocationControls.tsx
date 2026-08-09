@@ -1,15 +1,16 @@
-import { type FormEvent, type MouseEvent, useEffect, useMemo, useState } from 'react'
+import { type FormEvent, type MouseEvent, useEffect, useState } from 'react'
 import { Wand2Icon } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import type { Coordinates } from '@/lib/types'
+import type { Coordinates, DevicePosition, GeoMode } from '@/lib/types'
 import { cn } from '@/lib/utils'
+import { formatCoordinates } from '@/utils/format'
 
 interface ManualLocationControlsProps {
-  position: (Coordinates & { accuracy: number; source: 'browser' | 'manual' }) | null
-  mode: 'auto' | 'manual'
+  position: DevicePosition | null
+  mode: GeoMode
   onSetManual: (coords: Coordinates) => void
   onClearManual: () => void
   onRequestLocation?: () => void
@@ -30,22 +31,11 @@ export function ManualLocationControls({
   const [combinedInput, setCombinedInput] = useState('')
   const [manualError, setManualError] = useState<string | null>(null)
 
-  const manualCoordinates = useMemo(() => {
-    if (position?.source !== 'manual') return null
-    return {
-      lat: position.lat.toFixed(5),
-      lon: position.lon.toFixed(5),
-    }
-  }, [position])
+  const manualCoordinates = position?.source === 'manual' ? formatCoordinates(position, 5) : null
 
   const handleOpen = () => {
-    if (position) {
-      const latValue = position.lat
-      const lonValue = position.lon
-      setCombinedInput(`${latValue}, ${lonValue}`)
-    } else {
-      setCombinedInput('')
-    }
+    // Full precision here: this string is the editable value, not a display label.
+    setCombinedInput(position ? `${position.lat}, ${position.lon}` : '')
     setShowDialog(true)
     setManualError(null)
   }
@@ -136,7 +126,7 @@ export function ManualLocationControls({
         </div>
         {mode === 'manual' && manualCoordinates ? (
           <p className="text-xs text-slate-500">
-            Currently using ({manualCoordinates.lat}, {manualCoordinates.lon}).{' '}
+            Currently using ({manualCoordinates}).{' '}
             <button
               type="button"
               className="font-medium text-brand-600 hover:underline"

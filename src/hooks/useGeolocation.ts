@@ -1,14 +1,11 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
-import type { Coordinates } from '@/lib/types'
+import type { Coordinates, DevicePosition, GeoMode, GeoStatus } from '@/lib/types'
 
 const MANUAL_LOCATION_KEY = 'trail-whisper:manual-location'
 
-type GeolocationStatus = 'idle' | 'prompt' | 'granted' | 'denied' | 'unsupported' | 'manual'
-type GeolocationSource = 'browser' | 'manual'
-type GeolocationMode = 'auto' | 'manual'
-
-type GeolocationPosition = Coordinates & { accuracy: number; source: GeolocationSource }
+/** Status of the browser geolocation API alone; a manual position overrides it in `status`. */
+type BrowserStatus = Exclude<GeoStatus, 'manual'>
 
 function readManualLocation(): Coordinates | null {
   if (typeof window === 'undefined') return null
@@ -33,27 +30,28 @@ interface Options {
 }
 
 interface GeolocationResult {
-  position: GeolocationPosition | null
-  status: GeolocationStatus
+  position: DevicePosition | null
+  status: GeoStatus
   loading: boolean
   error?: string
   requestLocation: () => void
   setManualPosition: (coords: Coordinates) => void
   clearManualPosition: () => void
-  mode: GeolocationMode
+  mode: GeoMode
 }
 
 export function useGeolocation(options: Options = {}): GeolocationResult {
   const autoRequest = options.autoRequest ?? true
   const [manualPosition, setManualPositionState] = useState<Coordinates | null>(() => readManualLocation())
-  const [geoPosition, setGeoPosition] = useState<GeolocationPosition | null>(null)
-  const [status, setStatus] = useState<GeolocationStatus>(manualPosition ? 'manual' : 'idle')
+  const [geoPosition, setGeoPosition] = useState<DevicePosition | null>(null)
+  const [browserStatus, setBrowserStatus] = useState<BrowserStatus>('idle')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | undefined>(undefined)
 
-  const mode: GeolocationMode = manualPosition ? 'manual' : 'auto'
+  const mode: GeoMode = manualPosition ? 'manual' : 'auto'
+  const status: GeoStatus = manualPosition ? 'manual' : browserStatus
 
-  const position = useMemo<GeolocationPosition | null>(() => {
+  const position = useMemo<DevicePosition | null>(() => {
     if (manualPosition) {
       return { lat: manualPosition.lat, lon: manualPosition.lon, accuracy: Number.NaN, source: 'manual' }
     }
@@ -62,13 +60,13 @@ export function useGeolocation(options: Options = {}): GeolocationResult {
 
   const requestLocation = useCallback(() => {
     if (!('geolocation' in navigator)) {
-      setStatus('unsupported')
+      setBrowserStatus('unsupported')
       setError('Geolocation is not supported on this device.')
       return
     }
 
     setLoading(true)
-    setStatus('prompt')
+    setBrowserStatus('prompt')
     navigator.geolocation.getCurrentPosition(
       (nextPosition) => {
         setLoading(false)
@@ -78,12 +76,12 @@ export function useGeolocation(options: Options = {}): GeolocationResult {
           accuracy: nextPosition.coords.accuracy,
           source: 'browser',
         })
-        setStatus(manualPosition ? 'manual' : 'granted')
+        setBrowserStatus('granted')
         setError(undefined)
       },
       (err) => {
         setLoading(false)
-        setStatus(err.code === err.PERMISSION_DENIED ? 'denied' : 'idle')
+        setBrowserStatus(err.code === err.PERMISSION_DENIED ? 'denied' : 'idle')
         setError(err.message)
       },
       {
@@ -92,11 +90,10 @@ export function useGeolocation(options: Options = {}): GeolocationResult {
         timeout: 15_000,
       },
     )
-  }, [manualPosition])
+  }, [])
 
   const setManualPosition = useCallback((coords: Coordinates) => {
     setManualPositionState(coords)
-    setStatus('manual')
     setLoading(false)
     setError(undefined)
 
@@ -110,14 +107,20 @@ export function useGeolocation(options: Options = {}): GeolocationResult {
     if (typeof window !== 'undefined') {
       window.localStorage.removeItem(MANUAL_LOCATION_KEY)
     }
+  }, [])
 
-    setStatus(geoPosition ? 'granted' : 'idle')
-  }, [geoPosition])
+  // A TIMEOUT or POSITION_UNAVAILABLE failure resets the status to 'idle', which
+  // matches the pre-request state — so an unguarded effect re-fires immediately and
+  // loops forever (tight, not throttled, when the device answers 'unavailable' at
+  // once). One automatic attempt per mount; after that it takes an explicit retry.
+  const autoRequested = useRef(false)
 
   useEffect(() => {
-    if (autoRequest && !position && status === 'idle') {
-      requestLocation()
-    }
+    if (!autoRequest || autoRequested.current) return
+    if (position || status !== 'idle') return
+
+    autoRequested.current = true
+    requestLocation()
   }, [autoRequest, position, requestLocation, status])
 
   return {

@@ -8,7 +8,15 @@ import App from './App'
 import './index.css'
 import { AuthProvider } from './providers/AuthProvider'
 
-const queryClient = new QueryClient()
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 60_000,
+      refetchOnWindowFocus: false,
+      retry: 1,
+    },
+  },
+})
 
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
   <React.StrictMode>

@@ -17,10 +17,13 @@ export default function Dashboard() {
     error,
     requestLocation,
   } = useGeolocation()
-  const { visits, stats, isLoading: visitsLoading } = useVisitsNear(position)
-  const { data: activities, isLoading: activitiesLoading } = useActivities({ limit: 40 })
+  const { stats, isLoading: visitsLoading, isError: visitsFailed, refetch: refetchVisits } = useVisitsNear(position)
+  const { data: recentActivities, isLoading: activitiesLoading, isError: activitiesFailed } = useActivities({ limit: 5 })
 
-  const recentActivities = (activities ?? []).slice(0, 5)
+  const handleRetry = () => {
+    requestLocation()
+    void refetchVisits()
+  }
 
   return (
     <div className="grid gap-6 lg:grid-cols-[2fr,1fr]">
@@ -30,9 +33,9 @@ export default function Dashboard() {
           status={status}
           position={position}
           stats={stats}
-          visits={visits}
           error={error}
-          onRetry={requestLocation}
+          visitsFailed={visitsFailed}
+          onRetry={handleRetry}
         />
       </div>
       <aside className="hidden flex-col gap-4 lg:flex">
@@ -49,7 +52,11 @@ export default function Dashboard() {
                 <Skeleton className="h-16 w-full" />
                 <Skeleton className="h-16 w-full" />
               </div>
-            ) : recentActivities.length ? (
+            ) : activitiesFailed ? (
+              <p className="rounded-2xl bg-rose-50 p-4 text-center text-sm text-rose-600">
+                Could not load your activities.
+              </p>
+            ) : recentActivities?.length ? (
               recentActivities.map((activity) => (
                 <Link
                   key={activity.id}

@@ -1,39 +1,55 @@
 import { useQuery } from '@tanstack/react-query'
 
 import { supabase } from '@/lib/supabase'
-import type { Activity } from '@/lib/types'
+import { queryKeys } from '@/lib/queryKeys'
+import { ACTIVITY_COLUMNS, type Activity, type Coordinates } from '@/lib/types'
 import type { SportType } from '@/lib/fit'
-import { geoLineToLatLngs, findNearestPointOnTrack } from '@/utils/geo'
+import { quantiseCoordinates } from '@/utils/geo'
 
 interface ActivitiesFilter {
   sport?: SportType | 'all'
   from?: string
   to?: string
-  near?: { lat: number; lon: number; radius: number }
+  near?: Coordinates & { radius: number }
   limit?: number
-  includeTrack?: boolean
 }
 
 export function useActivities(filters?: ActivitiesFilter) {
-  const needsTrack = Boolean(filters?.near || filters?.includeTrack)
-  const selectFields = needsTrack
-    ? 'id, sport, started_at, ended_at, total_distance_m, track_geom, created_at'
-    : 'id, sport, started_at, ended_at, total_distance_m, created_at'
+  const near = filters?.near
+  // Quantised once, then used for both the cache key and the request — keying on a
+  // rounded point while querying the raw one would leave entries that describe a
+  // different centre than the one they were fetched for.
+  const nearPoint = near ? quantiseCoordinates(near) : null
+  const nearFilter = near && nearPoint ? { ...nearPoint, radius: near.radius } : undefined
+  const sport = filters?.sport && filters.sport !== 'all' ? filters.sport : undefined
 
   return useQuery<Activity[]>({
-    queryKey: ['activities', filters],
+    queryKey: [...queryKeys.activities, { ...filters, near: nearFilter }],
     queryFn: async () => {
-      let query = supabase
-        .from('activities')
-        .select(selectFields)
-        .order('started_at', { ascending: false })
+      if (nearFilter) {
+        // Proximity, sport and date are all resolved in Postgres; no geometry crosses
+        // the wire just to be measured and discarded here.
+        const { data, error } = await supabase.rpc('find_activities_near', {
+          lat: nearFilter.lat,
+          lon: nearFilter.lon,
+          radius_m: nearFilter.radius,
+          sport_filter: sport ?? null,
+          started_from: filters?.from ?? null,
+          started_to: filters?.to ?? null,
+          max_results: filters?.limit ?? null,
+        })
+        if (error) throw error
+        return (data ?? []) as Activity[]
+      }
+
+      let query = supabase.from('activities').select(ACTIVITY_COLUMNS).order('started_at', { ascending: false })
 
       if (filters?.limit) {
         query = query.limit(filters.limit)
       }
 
-      if (filters?.sport && filters.sport !== 'all') {
-        query = query.eq('sport', filters.sport)
+      if (sport) {
+        query = query.eq('sport', sport)
       }
 
       if (filters?.from) {
@@ -47,21 +63,10 @@ export function useActivities(filters?: ActivitiesFilter) {
       const { data, error } = await query
       if (error) throw error
 
-      let list = (data ?? []) as unknown as Activity[]
-
-      if (filters?.near && needsTrack) {
-        const { lat, lon, radius } = filters.near
-        list = list.filter((activity) => {
-          const trackPoints = geoLineToLatLngs(activity.track_geom)
-          if (!trackPoints.length) return false
-          const nearest = findNearestPointOnTrack(trackPoints, { lat, lon }, radius)
-          if (!nearest) return false
-          return typeof radius === 'number' ? nearest.distance <= radius : true
-        })
-      }
-
-      return list
+      return (data ?? []) as unknown as Activity[]
     },
-    staleTime: 60_000,
+    // A near filter that could not be quantised is malformed; running the query
+    // anyway would quietly return every activity instead of the nearby ones.
+    enabled: !near || Boolean(nearFilter),
   })
 }

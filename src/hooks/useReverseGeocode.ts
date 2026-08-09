@@ -1,29 +1,22 @@
-import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 
+import { queryKeys } from '@/lib/queryKeys'
 import type { Coordinates } from '@/lib/types'
+import { quantiseCoordinates } from '@/utils/geo'
+
+/** Address keys in descending specificity; the first match wins and names the place type. */
+const PLACE_KEYS = ['city', 'town', 'village', 'hamlet', 'locality'] as const
+
+type PlaceType = (typeof PLACE_KEYS)[number] | 'other'
 
 interface NominatimResponse {
-  display_name?: string
   name?: string
-  address?: {
-    city?: string
-    town?: string
-    village?: string
-    hamlet?: string
-    locality?: string
-    county?: string
-    state?: string
-    country?: string
-  }
+  address?: Partial<Record<(typeof PLACE_KEYS)[number] | 'county' | 'state' | 'country', string>>
 }
-
-type PlaceType = 'city' | 'town' | 'village' | 'hamlet' | 'locality' | 'other'
 
 interface ReverseGeocodeResult {
   locality?: string
   region?: string
-  displayName?: string
   placeType?: PlaceType
 }
 
@@ -47,50 +40,34 @@ async function fetchReverseGeocode(position: Coordinates): Promise<ReverseGeocod
   }
 
   const data = (await response.json()) as NominatimResponse
-  let locality: string | undefined
-  let placeType: PlaceType = 'other'
-
-  if (data.address?.city) {
-    locality = data.address.city
-    placeType = 'city'
-  } else if (data.address?.town) {
-    locality = data.address.town
-    placeType = 'town'
-  } else if (data.address?.village) {
-    locality = data.address.village
-    placeType = 'village'
-  } else if (data.address?.hamlet) {
-    locality = data.address.hamlet
-    placeType = 'hamlet'
-  } else if (data.address?.locality) {
-    locality = data.address.locality
-    placeType = 'locality'
-  }
-
-  const region = data.address?.state ?? data.address?.county ?? data.address?.country
+  const placeKey = PLACE_KEYS.find((key) => data.address?.[key])
 
   return {
-    locality: locality ?? data.name,
-    region,
-    displayName: data.display_name,
-    placeType,
+    locality: (placeKey && data.address?.[placeKey]) || data.name,
+    region: data.address?.state ?? data.address?.county ?? data.address?.country,
+    placeType: placeKey ?? 'other',
   }
 }
 
 export function useReverseGeocode(position?: Coordinates | null) {
-  const query = useQuery({
-    queryKey: ['reverse-geocode', position?.lat, position?.lon],
-    queryFn: () => fetchReverseGeocode(position as Coordinates),
-    enabled: Boolean(position?.lat && position?.lon),
+  // Nominatim answers at town resolution, so the quantised point is both the cache
+  // key and what gets looked up — full-precision floats would never cache-hit, and
+  // Nominatim's usage policy does not forgive a request per GPS update.
+  const point = quantiseCoordinates(position)
+
+  const { data, isLoading } = useQuery({
+    queryKey: [...queryKeys.reverseGeocode, point?.lat, point?.lon],
+    queryFn: () => fetchReverseGeocode(point as Coordinates),
+    enabled: point !== null,
     staleTime: 60 * 60 * 1000,
+    gcTime: 24 * 60 * 60 * 1000,
     retry: 1,
   })
 
-  return useMemo(() => ({
-    ...query,
-    locality: query.data?.locality,
-    region: query.data?.region,
-    displayName: query.data?.displayName,
-    placeType: query.data?.placeType,
-  }), [query])
+  return {
+    locality: data?.locality,
+    region: data?.region,
+    placeType: data?.placeType,
+    isLoading,
+  }
 }

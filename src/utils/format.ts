@@ -1,5 +1,11 @@
 import { format, formatDistanceToNowStrict, parseISO } from 'date-fns'
 
+import type { Coordinates } from '@/lib/types'
+
+export function formatCoordinates({ lat, lon }: Coordinates, precision = 4) {
+  return `${lat.toFixed(precision)}, ${lon.toFixed(precision)}`
+}
+
 export function formatDistanceMeters(distance: number) {
   if (distance >= 1000) {
     return `${(distance / 1000).toFixed(1)} km`
