@@ -14,8 +14,8 @@
     "test:e2e": "playwright test"
   },
   "engines": {
-    "node": ">=20.19",
-    "npm": ">=10"
+    "node": ">=24.0.0",
+    "npm": ">=11"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.105.4",
